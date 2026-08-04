@@ -20,9 +20,6 @@ importers:
       axios:
         specifier: ^1.19.0
         version: 1.19.0(debug@4.4.3)
-      dayjs:
-        specifier: ^1.11.13
-        version: 1.11.21
       echarts:
         specifier: ^6.1.0
         version: 6.1.0
