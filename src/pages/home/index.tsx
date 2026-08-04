@@ -1,12 +1,9 @@
 import { useMemo } from 'react'
 import { Table, Input, Select, Button, Tag, Space, Card } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import {
-  SearchOutlined,
-  ReloadOutlined,
-  EyeOutlined,
-} from '@ant-design/icons'
+import { SearchOutlined, ReloadOutlined, EyeOutlined } from '@ant-design/icons'
 import { useThemeStore } from '@/stores'
+import { COLORS } from '@/styles/constants'
 import './index.css'
 
 interface TenantRecord {
@@ -18,26 +15,36 @@ interface TenantRecord {
   storageUsed: string
   plan: string
   createdAt: string
-  contactName: string
   contactPhone: string
 }
 
-const mockTenants: TenantRecord[] = Array.from({ length: 50 }, (_, i) => {
-  const statuses: TenantRecord['status'][] = ['normal', 'normal', 'normal', 'normal', 'normal', 'warning', 'suspended']
-  const status = statuses[Math.floor(Math.random() * statuses.length)]
-  return {
-    id: i + 1,
-    name: `企业${String(i + 1).padStart(3, '0')}`,
-    code: `T${String(i + 1).padStart(4, '0')}`,
-    status,
-    users: Math.floor(Math.random() * 800) + 10,
-    storageUsed: `${(Math.random() * 200 + 1).toFixed(1)} GB`,
-    plan: ['基础版', '专业版', '企业版'][Math.floor(Math.random() * 3)],
-    createdAt: `202${Math.floor(Math.random() * 4) + 1}-${String(Math.floor(Math.random() * 12) + 1).padStart(2, '0')}-${String(Math.floor(Math.random() * 28) + 1).padStart(2, '0')}`,
-    contactName: `联系人${i + 1}`,
-    contactPhone: `138${String(Math.floor(Math.random() * 100000000)).padStart(8, '0')}`,
-  }
-})
+function buildMockTenants(): TenantRecord[] {
+  const statuses: TenantRecord['status'][] = [
+    'normal',
+    'normal',
+    'normal',
+    'normal',
+    'normal',
+    'warning',
+    'suspended',
+  ]
+  return Array.from({ length: 50 }, (_, i) => {
+    const idx = (i * 7 + 3) % statuses.length
+    return {
+      id: i + 1,
+      name: `企业${String(i + 1).padStart(3, '0')}`,
+      code: `T${String(i + 1).padStart(4, '0')}`,
+      status: statuses[idx],
+      users: ((i * 137 + 50) % 800) + 10,
+      storageUsed: `${(((i * 73 + 20) % 200) + 1).toFixed(1)} GB`,
+      plan: ['基础版', '专业版', '企业版'][i % 3],
+      createdAt: `202${(i % 4) + 1}-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`,
+      contactPhone: `138${String((i * 113 + 5000) % 100000000).padStart(8, '0')}`,
+    }
+  })
+}
+
+const mockTenants = buildMockTenants()
 
 const statusMap: Record<TenantRecord['status'], { label: string; color: string }> = {
   normal: { label: '正常', color: 'green' },
@@ -51,8 +58,8 @@ const columns: ColumnsType<TenantRecord> = [
     dataIndex: 'code',
     key: 'code',
     width: 100,
-    render: (code: string) => (
-      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{code}</span>
+    render: (v: string) => (
+      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{v}</span>
     ),
   },
   {
@@ -72,9 +79,9 @@ const columns: ColumnsType<TenantRecord> = [
     dataIndex: 'status',
     key: 'status',
     width: 80,
-    render: (status: keyof typeof statusMap) => {
-      const s = statusMap[status]
-      return <Tag color={s.color}>{s.label}</Tag>
+    render: (s: TenantRecord['status']) => {
+      const m = statusMap[s]
+      return <Tag color={m.color}>{m.label}</Tag>
     },
   },
   {
@@ -85,30 +92,9 @@ const columns: ColumnsType<TenantRecord> = [
     sorter: (a, b) => a.users - b.users,
     render: (n: number) => n.toLocaleString(),
   },
-  {
-    title: '存储',
-    dataIndex: 'storageUsed',
-    key: 'storageUsed',
-    width: 100,
-  },
-  {
-    title: '套餐',
-    dataIndex: 'plan',
-    key: 'plan',
-    width: 90,
-  },
-  {
-    title: '联系人',
-    dataIndex: 'contactName',
-    key: 'contactName',
-    width: 100,
-  },
-  {
-    title: '电话',
-    dataIndex: 'contactPhone',
-    key: 'contactPhone',
-    width: 130,
-  },
+  { title: '存储', dataIndex: 'storageUsed', key: 'storageUsed', width: 100 },
+  { title: '套餐', dataIndex: 'plan', key: 'plan', width: 90 },
+  { title: '电话', dataIndex: 'contactPhone', key: 'contactPhone', width: 130 },
   {
     title: '入驻时间',
     dataIndex: 'createdAt',
@@ -149,23 +135,26 @@ const recentLogs = [
 export default function Dashboard() {
   const isDark = useThemeStore((s) => s.mode === 'dark')
 
-  const cardStyle = isDark
-    ? ({
-        '--card-bg': '#151D2E',
-        '--card-border': '#1E293B',
-        '--text-tertiary': '#64748B',
-        '--text-secondary': '#64748B',
-        '--divider': '#1E293B',
-        '--bar-bg': '#1E293B',
-      } as React.CSSProperties)
-    : ({
-        '--card-bg': '#FFFFFF',
-        '--card-border': '#E5E7EB',
-        '--text-tertiary': '#94A3B8',
-        '--text-secondary': '#64748B',
-        '--divider': '#F1F5F9',
-        '--bar-bg': '#F1F5F9',
-      } as React.CSSProperties)
+  const cardVars = useMemo(() => {
+    if (isDark) {
+      return {
+        '--card-bg': COLORS.dark.surface,
+        '--card-border': COLORS.dark.border,
+        '--text-tertiary': COLORS.dark.textTertiary,
+        '--text-secondary': COLORS.dark.textSecondary,
+        '--divider': COLORS.dark.border,
+        '--bar-bg': COLORS.dark.border,
+      } as React.CSSProperties
+    }
+    return {
+      '--card-bg': COLORS.light.surface,
+      '--card-border': COLORS.light.border,
+      '--text-tertiary': COLORS.light.textTertiary,
+      '--text-secondary': COLORS.light.textSecondary,
+      '--divider': '#F1F5F9',
+      '--bar-bg': '#F1F5F9',
+    } as React.CSSProperties
+  }, [isDark])
 
   const stats = useMemo(() => {
     const total = mockTenants.length
@@ -177,7 +166,7 @@ export default function Dashboard() {
   }, [])
 
   return (
-    <div className="dashboard" style={cardStyle}>
+    <div className="dashboard" style={cardVars}>
       <div className="metric-strip">
         <div className="metric-card">
           <div className="metric-value">{stats.total.toLocaleString()}</div>
@@ -243,7 +232,7 @@ export default function Dashboard() {
             pageSizeOptions: ['20', '50', '100'],
             defaultPageSize: 20,
           }}
-          scroll={{ x: 1100 }}
+          scroll={{ x: 1050 }}
         />
       </Card>
 
@@ -254,10 +243,7 @@ export default function Dashboard() {
               <span className="health-label">{m.label}</span>
               <Space size={8}>
                 <div className="health-bar">
-                  <div
-                    className={`health-bar-fill ${m.status}`}
-                    style={{ width: `${m.value}%` }}
-                  />
+                  <div className={`health-bar-fill ${m.status}`} style={{ width: `${m.value}%` }} />
                 </div>
                 <span
                   style={{

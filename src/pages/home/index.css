@@ -10,8 +10,8 @@
 }
 
 .metric-card {
-  background: var(--card-bg, #151D2E);
-  border: 1px solid var(--card-border, #1E293B);
+  background: var(--card-bg, #151d2e);
+  border: 1px solid var(--card-border, #1e293b);
   border-radius: 6px;
   padding: 20px 24px;
 }
@@ -30,13 +30,13 @@
   text-transform: uppercase;
   letter-spacing: 1px;
   margin-top: 4px;
-  color: var(--text-tertiary, #64748B);
+  color: var(--text-tertiary, #64748b);
 }
 
 .metric-sub {
   font-size: 12px;
   margin-top: 8px;
-  color: var(--text-secondary, #64748B);
+  color: var(--text-secondary, #64748b);
 }
 
 .metric-sub em {
@@ -45,11 +45,11 @@
 }
 
 .metric-sub.up em {
-  color: #16A34A;
+  color: #16a34a;
 }
 
 .metric-sub.down em {
-  color: #DC2626;
+  color: #dc2626;
 }
 
 .section-card {
@@ -80,15 +80,15 @@
 }
 
 .status-dot.normal {
-  background: #16A34A;
+  background: #16a34a;
 }
 
 .status-dot.warning {
-  background: #F59E0B;
+  background: #f59e0b;
 }
 
 .status-dot.suspended {
-  background: #DC2626;
+  background: #dc2626;
 }
 
 .bottom-panels {
@@ -102,7 +102,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 10px 0;
-  border-bottom: 1px solid var(--divider, #1E293B);
+  border-bottom: 1px solid var(--divider, #1e293b);
 }
 
 .health-item:last-child {
@@ -116,7 +116,7 @@
 .health-bar {
   width: 120px;
   height: 6px;
-  background: var(--bar-bg, #1E293B);
+  background: var(--bar-bg, #1e293b);
   border-radius: 3px;
   overflow: hidden;
 }
@@ -128,15 +128,15 @@
 }
 
 .health-bar-fill.good {
-  background: #16A34A;
+  background: #16a34a;
 }
 
 .health-bar-fill.caution {
-  background: #F59E0B;
+  background: #f59e0b;
 }
 
 .health-bar-fill.danger {
-  background: #DC2626;
+  background: #dc2626;
 }
 
 .log-item {
@@ -144,7 +144,7 @@
   align-items: flex-start;
   gap: 12px;
   padding: 8px 0;
-  border-bottom: 1px solid var(--divider, #1E293B);
+  border-bottom: 1px solid var(--divider, #1e293b);
   font-size: 13px;
 }
 
@@ -173,12 +173,12 @@
 
 .log-tag.operate {
   background: rgba(14, 165, 233, 0.1);
-  color: #0EA5E9;
+  color: #0ea5e9;
 }
 
 .log-tag.alert {
   background: rgba(245, 158, 11, 0.12);
-  color: #D4950B;
+  color: #d4950b;
 }
 
 @media (max-width: 1024px) {

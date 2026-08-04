@@ -1,9 +1,10 @@
 import { Suspense, lazy } from 'react'
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { Navigate } from 'react-router-dom'
 import type { RouteObject } from 'react-router-dom'
 import { Spin } from 'antd'
 import PlatformLayout from '@/components/Layout/PlatformLayout'
 
+// eslint-disable-next-line react-refresh/only-export-components
 function LazyLoad(importFn: () => Promise<{ default: React.ComponentType }>) {
   const Comp = lazy(importFn)
   return (
@@ -90,7 +91,3 @@ export const routeConfig: RouteObject[] = [
     element: LazyLoad(() => import('@/pages/error/NotFound')),
   },
 ]
-
-const router = createBrowserRouter(routeConfig)
-
-export default router

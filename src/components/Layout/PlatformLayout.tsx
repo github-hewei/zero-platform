@@ -1,6 +1,7 @@
-import { useMemo, Suspense } from 'react'
+import { Suspense } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Menu, Dropdown, Avatar, Space, Spin, App, Button } from 'antd'
+import type { ItemType } from 'antd/es/menu/interface'
 import {
   DashboardOutlined,
   SafetyCertificateOutlined,
@@ -16,18 +17,18 @@ import {
   SunOutlined,
   MoonOutlined,
 } from '@ant-design/icons'
-import type { MenuProps } from 'antd'
 import { useAuthStore, useThemeStore } from '@/stores'
-import { CONTAINER_WIDTH, SIDEBAR_WIDTH } from '@/styles/theme'
+import { clearToken } from '@/services/token'
+import { COLORS, LAYOUT } from '@/styles/constants'
 
-const topNavItems: NonNullable<MenuProps['items']> = [
+const topNavItems: ItemType[] = [
   { key: '/home', icon: <DashboardOutlined />, label: '仪表盘' },
   { key: '/rbac', icon: <SafetyCertificateOutlined />, label: '权限管理' },
   { key: '/users', icon: <TeamOutlined />, label: '平台用户' },
   { key: '/settings', icon: <SettingOutlined />, label: '系统设置' },
 ]
 
-const subMenuMap: Record<string, NonNullable<MenuProps['items']>> = {
+const subMenuMap: Record<string, ItemType[]> = {
   '/rbac': [
     { key: '/rbac/enterprise', icon: <ApartmentOutlined />, label: '企业管理' },
     { key: '/rbac/role', icon: <SolutionOutlined />, label: '角色管理' },
@@ -37,67 +38,63 @@ const subMenuMap: Record<string, NonNullable<MenuProps['items']>> = {
   ],
 }
 
+function resolveTopKey(pathname: string) {
+  if (pathname === '/' || pathname.startsWith('/home')) return '/home'
+  for (const prefix of ['/rbac', '/users', '/settings']) {
+    if (pathname.startsWith(prefix)) return prefix
+  }
+  return '/home'
+}
+
+function resolveFirstChild(topKey: string) {
+  const items = subMenuMap[topKey]
+  if (items?.length && items[0]?.key) return items[0].key as string
+  return topKey
+}
+
 export default function PlatformLayout() {
   const navigate = useNavigate()
-  const location = useLocation()
-  const { user } = useAuthStore()
+  const { pathname } = useLocation()
+  const user = useAuthStore((s) => s.user)
   const { message } = App.useApp()
   const { mode, toggle: toggleTheme } = useThemeStore()
+
   const isDark = mode === 'dark'
+  const activeTopKey = resolveTopKey(pathname)
+  const subItems = subMenuMap[activeTopKey]
+  const hasSubMenu = subItems != null
 
-  const activeTopKey = useMemo(() => {
-    const path = location.pathname
-    if (path.startsWith('/home') || path === '/') return '/home'
-    if (path.startsWith('/rbac')) return '/rbac'
-    if (path.startsWith('/users')) return '/users'
-    if (path.startsWith('/settings')) return '/settings'
-    return '/home'
-  }, [location.pathname])
+  const palette = isDark ? COLORS.dark : COLORS.light
 
-  const subItems = subMenuMap[activeTopKey] || null
-  const showSidebar = subItems !== null
-
-  const userMenuItems: MenuProps['items'] = [
+  const userMenuItems: ItemType[] = [
     { key: 'profile', icon: <UserOutlined />, label: '个人信息' },
     { type: 'divider' },
     { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true },
   ]
 
-  const handleUserMenuClick: MenuProps['onClick'] = ({ key }) => {
+  const handleUserMenuClick = ({ key }: { key: string }) => {
     if (key === 'logout') {
       useAuthStore.getState().logout()
-      localStorage.removeItem('platform_token')
+      clearToken()
       navigate('/login')
       message.success('已退出登录')
     }
   }
 
-  const handleTopNavClick = (info: { key: string }) => {
-    if (info.key === '/home') {
-      navigate('/home')
-    } else if (subMenuMap[info.key]?.length) {
-      navigate(subMenuMap[info.key]![0]!.key as string)
-    } else {
-      navigate(info.key)
-    }
+  const handleTopNavClick = ({ key }: { key: string }) => {
+    navigate(resolveFirstChild(key))
   }
 
-  const headerBg = isDark ? '#0D1525' : '#FFFFFF'
-  const headerBorder = isDark ? '#1E293B' : '#E5E7EB'
-  const outerBg = isDark ? '#0B1120' : '#F0F2F5'
-  const sidebarBg = isDark ? '#151D2E' : '#FFFFFF'
-  const sidebarBorder = isDark ? '#1E293B' : '#E5E7EB'
-
   return (
-    <div style={{ minHeight: '100vh', background: outerBg }}>
+    <div style={{ minHeight: '100vh', background: palette.bg }}>
       <div
         style={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '0 24px',
-          background: headerBg,
-          borderBottom: `1px solid ${headerBorder}`,
+          background: palette.headerBg,
+          borderBottom: `1px solid ${palette.border}`,
           height: 56,
         }}
       >
@@ -105,7 +102,7 @@ export default function PlatformLayout() {
           <span
             className="font-mono"
             style={{
-              color: '#F97316',
+              color: COLORS.primary,
               fontWeight: 700,
               fontSize: 18,
               letterSpacing: 3,
@@ -121,10 +118,7 @@ export default function PlatformLayout() {
             selectedKeys={[activeTopKey]}
             items={topNavItems}
             onClick={handleTopNavClick}
-            style={{
-              borderBottom: 'none',
-              background: 'transparent',
-            }}
+            style={{ borderBottom: 'none', background: 'transparent' }}
           />
         </Space>
 
@@ -133,16 +127,16 @@ export default function PlatformLayout() {
             type="text"
             icon={isDark ? <SunOutlined /> : <MoonOutlined />}
             onClick={toggleTheme}
-            style={{ color: isDark ? '#94A3B8' : '#64748B' }}
+            style={{ color: palette.textSecondary }}
           />
           <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenuClick }}>
             <Space style={{ cursor: 'pointer' }}>
               <Avatar
                 size={28}
                 icon={<UserOutlined />}
-                style={{ backgroundColor: '#F97316' }}
+                style={{ backgroundColor: COLORS.primary }}
               />
-              <span style={{ color: isDark ? '#94A3B8' : '#64748B', fontSize: 13 }}>
+              <span style={{ color: palette.textSecondary, fontSize: 13 }}>
                 {user?.real_name || user?.username || 'Admin'}
               </span>
             </Space>
@@ -152,7 +146,7 @@ export default function PlatformLayout() {
 
       <div
         style={{
-          maxWidth: CONTAINER_WIDTH,
+          maxWidth: LAYOUT.containerWidth,
           margin: '24px auto 0',
           padding: '0 24px',
           display: 'flex',
@@ -160,17 +154,17 @@ export default function PlatformLayout() {
           minHeight: 'calc(100vh - 56px - 24px)',
         }}
       >
-        {showSidebar && (
-          <div style={{ width: SIDEBAR_WIDTH, flexShrink: 0 }}>
+        {hasSubMenu && (
+          <div style={{ width: LAYOUT.sidebarWidth, flexShrink: 0 }}>
             <Menu
               mode="inline"
               theme={isDark ? 'dark' : 'light'}
-              selectedKeys={[location.pathname]}
+              selectedKeys={[pathname]}
               items={subItems}
               onClick={({ key }) => navigate(key)}
               style={{
-                background: sidebarBg,
-                border: `1px solid ${sidebarBorder}`,
+                background: palette.surface,
+                border: `1px solid ${palette.border}`,
                 borderRadius: 6,
                 padding: '8px 0',
               }}
