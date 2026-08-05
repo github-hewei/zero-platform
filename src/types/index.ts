@@ -123,3 +123,32 @@ export interface SettingDefault {
   created_at: number
   updated_at: number
 }
+
+export interface UploadGroup {
+  id: number
+  name: string
+  parent_id: number
+  sort: number
+  store_id: number
+  created_at: number
+  updated_at: number
+  children?: UploadGroup[]
+}
+
+export interface UploadFile {
+  id: number
+  group_id: number
+  channel: number
+  storage: string
+  domain: string
+  file_type: number
+  file_name: string
+  file_path: string
+  file_size: number
+  file_ext: string
+  cover: string
+  uploader_id: number
+  store_id: number
+  created_at: number
+  updated_at: number
+}

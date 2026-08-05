@@ -41,8 +41,8 @@ export default function LoginPage() {
     try {
       const data = await getCaptcha()
       setCaptchaData(data)
-    } catch {
-      message.error('获取验证码失败')
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '获取验证码失败')
     } finally {
       setCaptchaLoading(false)
     }

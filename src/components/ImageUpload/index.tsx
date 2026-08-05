@@ -1,12 +1,13 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useCallback } from 'react'
 import { Upload, Image, Button, App } from 'antd'
 import { PlusOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
 import type { UploadFile, RcFile } from 'antd/es/upload/interface'
 import { useUpload } from '@/hooks/useUpload'
+import { useFileInfo, cacheFile } from '@/hooks/useFileInfo'
 
 interface ImageUploadProps {
-  value?: string
-  onChange?: (url: string) => void
+  value?: number
+  onChange?: (id: number) => void
   maxCount?: number
   maxSize?: number
   disabled?: boolean
@@ -15,7 +16,7 @@ interface ImageUploadProps {
 const DEFAULT_MAX_SIZE = 10 * 1024 * 1024
 
 export default function ImageUpload({
-  value = '',
+  value,
   onChange,
   maxCount = 1,
   maxSize = DEFAULT_MAX_SIZE,
@@ -25,40 +26,37 @@ export default function ImageUpload({
   const { upload, uploading, progress } = useUpload()
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState('')
+  const { url, loading: loadingFile } = useFileInfo(value)
 
-  const urls = useMemo(() => (value ? [value] : []), [value])
+  const fileList: UploadFile[] = useMemo(() => {
+    if (value === undefined || value <= 0) return []
+    return [
+      { uid: `img-${value}`, name: `image-${value}`, status: 'done' as const, url: url || '' },
+    ]
+  }, [value, url])
 
-  const fileList: UploadFile[] = useMemo(
-    () =>
-      urls.map((url, i) => ({
-        uid: `img-${i}-${url.slice(-8)}`,
-        name: `image-${i}`,
-        status: 'done' as const,
-        url,
-      })),
-    [urls],
+  const handleChange = useCallback(
+    async (info: { file: UploadFile }) => {
+      const f = info.file as RcFile
+
+      if (f.size && f.size > maxSize) {
+        message.error(`文件大小不能超过 ${(maxSize / 1024 / 1024).toFixed(0)}MB`)
+        return
+      }
+
+      try {
+        const fileData = await upload(f)
+        cacheFile(fileData)
+        onChange?.(fileData.id)
+      } catch (err) {
+        message.error(err instanceof Error ? err.message : '上传失败，请重试')
+      }
+    },
+    [upload, maxSize, onChange, message],
   )
 
-  const handleChange = async (info: { file: UploadFile }) => {
-    const file = info.file as RcFile
-
-    if (file.size && file.size > maxSize) {
-      message.error(`文件大小不能超过 ${(maxSize / 1024 / 1024).toFixed(0)}MB`)
-      return
-    }
-
-    try {
-      const url = await upload(file)
-      onChange?.(url)
-    } catch {
-      message.error('上传失败，请重试')
-    }
-  }
-
-  const handleRemove = (uid: string) => {
-    const idx = fileList.findIndex((f) => f.uid === uid)
-    if (idx === -1) return
-    onChange?.('')
+  const handleRemove = () => {
+    onChange?.(0)
   }
 
   const handlePreview = (file: UploadFile) => {
@@ -111,12 +109,51 @@ export default function ImageUpload({
         borderRadius: 6,
       }}
     >
-      <img
-        src={file.url}
-        alt={file.name}
-        style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-      />
-      {!disabled && (
+      {loadingFile ? (
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#F8F9FA',
+          }}
+        >
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: '50%',
+              border: '2px solid #E2E8F0',
+              borderTopColor: '#F97316',
+              animation: 'image-upload-spin 0.8s linear infinite',
+            }}
+          />
+        </div>
+      ) : file.url ? (
+        <img
+          src={file.url}
+          alt={file.name}
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+        />
+      ) : (
+        <div
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: '#F8F9FA',
+            color: '#94A3B8',
+            fontSize: 12,
+          }}
+        >
+          暂无图片
+        </div>
+      )}
+      {!disabled && !loadingFile && file.url && (
         <div
           style={{
             position: 'absolute',
@@ -157,7 +194,7 @@ export default function ImageUpload({
             icon={<DeleteOutlined style={{ color: '#fff', fontSize: 16 }} />}
             onClick={(e) => {
               e.stopPropagation()
-              handleRemove(file.uid)
+              handleRemove()
             }}
           />
         </div>

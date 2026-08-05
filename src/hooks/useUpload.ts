@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react'
 import http from '@/services/http'
-import type { CommonResponse } from '@/types'
+import type { CommonResponse, UploadFile } from '@/types'
 
 interface UploadOptions {
   onProgress?: (percent: number) => void
-  onSuccess?: (url: string) => void
+  onSuccess?: (file: UploadFile) => void
   onError?: (err: Error) => void
 }
 
@@ -20,23 +20,19 @@ export function useUpload() {
       const formData = new FormData()
       formData.append('file', file)
 
-      const res = await http.post<CommonResponse<{ url: string }>>(
-        '/upload/file/upload',
-        formData,
-        {
-          onUploadProgress: (e) => {
-            if (e.total) {
-              const pct = Math.round((e.loaded / e.total) * 100)
-              setProgress(pct)
-              options?.onProgress?.(pct)
-            }
-          },
+      const res = await http.post<CommonResponse<UploadFile>>('/upload/file/upload', formData, {
+        onUploadProgress: (e) => {
+          if (e.total) {
+            const pct = Math.round((e.loaded / e.total) * 100)
+            setProgress(pct)
+            options?.onProgress?.(pct)
+          }
         },
-      )
+      })
 
-      const url = res.data.data.url
-      options?.onSuccess?.(url)
-      return url
+      const fileData = res.data.data
+      options?.onSuccess?.(fileData)
+      return fileData
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Upload failed')
       options?.onError?.(error)

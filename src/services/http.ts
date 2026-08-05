@@ -16,7 +16,7 @@ export function setAuthProvider(provider: AuthProvider) {
 }
 
 const http = axios.create({
-  baseURL: '/api',
+  baseURL: 'http://127.0.0.1:8097/api',
   timeout: 30000,
   withCredentials: true,
 })
