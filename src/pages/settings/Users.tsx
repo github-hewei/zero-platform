@@ -73,6 +73,21 @@ export default function PlatformUserPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  useEffect(() => {
+    if (modalOpen) {
+      if (editing) {
+        form.setFieldsValue({
+          username: editing.username,
+          real_name: editing.real_name,
+          role: editing.role,
+          status: editing.status,
+        })
+      } else {
+        form.resetFields()
+      }
+    }
+  }, [modalOpen, editing, form])
+
   const handleSearch = () => {
     fetchData(1, pagination.limit)
   }
@@ -84,18 +99,11 @@ export default function PlatformUserPage() {
 
   const handleCreate = () => {
     setEditing(null)
-    form.resetFields()
     setModalOpen(true)
   }
 
   const handleEdit = (record: PlatformUser) => {
     setEditing(record)
-    form.setFieldsValue({
-      username: record.username,
-      real_name: record.real_name,
-      role: record.role,
-      status: record.status,
-    })
     setModalOpen(true)
   }
 

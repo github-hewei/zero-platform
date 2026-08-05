@@ -21,13 +21,26 @@ const ALL_ACTIONS = [
   'PlatformUser:update',
   'PlatformUser:delete',
   'PlatformUser:resetpassword',
+  'EnterpriseStore:create',
+  'EnterpriseStore:update',
+  'EnterpriseStore:delete',
+  'EnterpriseStore:recycle',
+  'EnterpriseStore:restore',
+]
+
+const OPERATOR_ACTIONS = [
+  'EnterpriseStore:create',
+  'EnterpriseStore:update',
+  'EnterpriseStore:delete',
+  'EnterpriseStore:recycle',
+  'EnterpriseStore:restore',
 ]
 
 const OPERATOR_PATHS = ['/home', '/rbac/enterprise', '/rbac/user', '/settings/general']
 
 const rolePermissionMap: Record<number, PermissionConfig> = {
   0: { paths: ALL_PATHS, actions: ALL_ACTIONS },
-  1: { paths: OPERATOR_PATHS, actions: [] },
+  1: { paths: OPERATOR_PATHS, actions: OPERATOR_ACTIONS },
   2: { paths: ['/home'], actions: [] },
 }
 
