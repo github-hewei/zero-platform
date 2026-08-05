@@ -1,6 +1,6 @@
-import { Suspense, useMemo } from 'react'
+import { Suspense, useMemo, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
-import { Menu, Dropdown, Avatar, Space, Spin, App, Button } from 'antd'
+import { Menu, Dropdown, Avatar, Space, Spin, App, Button, Modal, Form, Input } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
 import {
   DashboardOutlined,
@@ -18,7 +18,7 @@ import {
   MoonOutlined,
 } from '@ant-design/icons'
 import { useAuthStore, useThemeStore, usePermissionStore } from '@/stores'
-import { logout as logoutApi } from '@/services/auth'
+import { logout as logoutApi, changePassword } from '@/services/auth'
 import { COLORS, LAYOUT } from '@/styles/constants'
 
 const allTopNavItems: ItemType[] = [
@@ -57,6 +57,9 @@ export default function PlatformLayout() {
   const { mode, toggle: toggleTheme } = useThemeStore()
   const allowedPaths = usePermissionStore((s) => s.allowedPaths)
 
+  const [pwdOpen, setPwdOpen] = useState(false)
+  const [pwdForm] = Form.useForm()
+
   const isDark = mode === 'dark'
   const activeTopKey = resolveTopKey(pathname)
   const palette = isDark ? COLORS.dark : COLORS.light
@@ -87,12 +90,17 @@ export default function PlatformLayout() {
   const hasSubMenu = subItems != null
 
   const userMenuItems: ItemType[] = [
-    { key: 'profile', icon: <UserOutlined />, label: '个人信息' },
+    { key: 'password', icon: <UserOutlined />, label: '修改密码' },
     { type: 'divider' },
     { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true },
   ]
 
   const handleUserMenuClick = async ({ key }: { key: string }) => {
+    if (key === 'password') {
+      pwdForm.resetFields()
+      setPwdOpen(true)
+      return
+    }
     if (key === 'logout') {
       try {
         await logoutApi()
@@ -112,6 +120,18 @@ export default function PlatformLayout() {
       navigate(String(items[0].key))
     } else {
       navigate(key)
+    }
+  }
+
+  const handlePwdOk = async () => {
+    const values = await pwdForm.validateFields().catch(() => null)
+    if (!values) return
+    try {
+      await changePassword(values)
+      message.success('密码修改成功')
+      setPwdOpen(false)
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '操作失败')
     }
   }
 
@@ -221,6 +241,34 @@ export default function PlatformLayout() {
           </Suspense>
         </div>
       </div>
+
+      <Modal
+        title="修改密码"
+        open={pwdOpen}
+        onOk={handlePwdOk}
+        onCancel={() => setPwdOpen(false)}
+        destroyOnClose
+      >
+        <Form form={pwdForm} layout="vertical" style={{ marginTop: 16 }}>
+          <Form.Item
+            name="old_password"
+            label="旧密码"
+            rules={[{ required: true, message: '请输入旧密码' }]}
+          >
+            <Input.Password placeholder="请输入旧密码" />
+          </Form.Item>
+          <Form.Item
+            name="new_password"
+            label="新密码"
+            rules={[
+              { required: true, message: '请输入新密码' },
+              { min: 6, max: 20, message: '密码长度 6-20' },
+            ]}
+          >
+            <Input.Password placeholder="请输入新密码" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   )
 }

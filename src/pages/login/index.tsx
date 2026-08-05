@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react'
 import { Button, Form, Input, App, Modal, Space } from 'antd'
 import { UserOutlined, LockOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
-import { useAuthStore, useThemeStore, usePermissionStore } from '@/stores'
+import { useAuthStore, usePermissionStore } from '@/stores'
 import { login as loginApi, getCaptcha, getPermissions } from '@/services/auth'
 import type { CaptchaResponse } from '@/types'
 import { COLORS } from '@/styles/constants'
@@ -23,8 +23,6 @@ export default function LoginPage() {
 
   const navigate = useNavigate()
   const { message } = App.useApp()
-  const isDark = useThemeStore((s) => s.mode === 'dark')
-  const palette = isDark ? COLORS.dark : COLORS.light
   const [form] = Form.useForm()
 
   const fetchCaptcha = useCallback(async () => {
@@ -119,7 +117,7 @@ export default function LoginPage() {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          background: palette.bg,
+          background: COLORS.light.bg,
         }}
       >
         <div
@@ -129,7 +127,7 @@ export default function LoginPage() {
             minHeight: 440,
             borderRadius: 8,
             overflow: 'hidden',
-            boxShadow: isDark ? '0 24px 80px rgba(0,0,0,0.6)' : '0 20px 60px rgba(0,0,0,0.08)',
+            boxShadow: '0 20px 60px rgba(0,0,0,0.08)',
           }}
         >
           <div
@@ -201,7 +199,7 @@ export default function LoginPage() {
           <div
             style={{
               flex: 1,
-              background: palette.surface,
+              background: COLORS.light.surface,
               display: 'flex',
               flexDirection: 'column',
               justifyContent: 'center',
@@ -213,14 +211,14 @@ export default function LoginPage() {
                 style={{
                   fontSize: 18,
                   fontWeight: 600,
-                  color: isDark ? COLORS.dark.textPrimary : COLORS.light.textPrimary,
+                  color: COLORS.light.textPrimary,
                   letterSpacing: 1,
                   margin: 0,
                 }}
               >
                 登录
               </h2>
-              <p style={{ fontSize: 13, color: palette.textTertiary, marginTop: 4 }}>
+              <p style={{ fontSize: 13, color: COLORS.light.textTertiary, marginTop: 4 }}>
                 请输入平台管理员账号
               </p>
             </div>
@@ -228,7 +226,7 @@ export default function LoginPage() {
             <Form form={form} size="large" layout="vertical">
               <Form.Item name="username" rules={[{ required: true, message: '请输入管理员账号' }]}>
                 <Input
-                  prefix={<UserOutlined style={{ color: palette.textTertiary }} />}
+                  prefix={<UserOutlined style={{ color: COLORS.light.textTertiary }} />}
                   placeholder="管理员账号"
                   autoComplete="username"
                 />
@@ -240,7 +238,7 @@ export default function LoginPage() {
                 style={{ marginBottom: 28 }}
               >
                 <Input.Password
-                  prefix={<LockOutlined style={{ color: palette.textTertiary }} />}
+                  prefix={<LockOutlined style={{ color: COLORS.light.textTertiary }} />}
                   placeholder="密码"
                   autoComplete="current-password"
                 />

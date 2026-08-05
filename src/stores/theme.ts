@@ -11,7 +11,7 @@ interface ThemeState {
 function getInitialMode(): ThemeMode {
   const stored = localStorage.getItem('platform_theme')
   if (stored === 'dark' || stored === 'light') return stored
-  return 'dark'
+  return 'light'
 }
 
 export const useThemeStore = create<ThemeState>((set) => ({

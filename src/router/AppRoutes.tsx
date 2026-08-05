@@ -1,4 +1,4 @@
-import { createBrowserRouter, RouterProvider } from 'react-router-dom'
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom'
 import { useMemo } from 'react'
 import { useAuthStore, usePermissionStore } from '@/stores'
 import { routeConfig } from './config'
@@ -44,7 +44,13 @@ export default function AppRoutes() {
 
   const router = useMemo(() => {
     if (!token) {
-      return createBrowserRouter(routeConfig.filter((r) => r.path === '/login' || r.path === '*'))
+      return createBrowserRouter([
+        { path: '/', element: <Navigate to="/login" replace /> },
+        ...routeConfig.filter((r) => r.path === '/login' || r.path === '*'),
+      ])
+    }
+    if (allowedPaths.length === 0) {
+      return createBrowserRouter(routeConfig)
     }
     return createBrowserRouter(filterRoutes(routeConfig, allowedPaths))
   }, [token, allowedPaths])
