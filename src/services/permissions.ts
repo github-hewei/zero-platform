@@ -26,6 +26,9 @@ const ALL_ACTIONS = [
   'EnterpriseStore:delete',
   'EnterpriseStore:recycle',
   'EnterpriseStore:restore',
+  'Api:create',
+  'Api:update',
+  'Api:delete',
 ]
 
 const OPERATOR_ACTIONS = [

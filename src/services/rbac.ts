@@ -1,5 +1,5 @@
 import http from './http'
-import type { CommonResponse, PaginatedData, PaginatedRequest, RbacStore } from '@/types'
+import type { CommonResponse, PaginatedData, PaginatedRequest, RbacStore, RbacApi } from '@/types'
 
 export async function getStoreList(
   params: PaginatedRequest & { name?: string; is_recycle?: number },
@@ -31,4 +31,21 @@ export async function recycleStore(id: number) {
 export async function restoreStore(id: number) {
   const res = await http.post<CommonResponse>('/rbac/store/restore', { id })
   return res.data
+}
+
+export async function getApiList() {
+  const res = await http.post<CommonResponse<RbacApi[]>>('/rbac/api/list', {})
+  return res.data.data || []
+}
+
+export async function createApi(data: Partial<RbacApi>) {
+  await http.post('/rbac/api/create', data)
+}
+
+export async function updateApi(data: Partial<RbacApi> & { id: number }) {
+  await http.post('/rbac/api/update', data)
+}
+
+export async function deleteApi(id: number) {
+  await http.post('/rbac/api/delete', { id })
 }

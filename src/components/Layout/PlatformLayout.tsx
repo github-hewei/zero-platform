@@ -33,7 +33,7 @@ const allSubMenus: Record<string, ItemType[]> = {
     { key: '/rbac/user', icon: <TeamOutlined />, label: '租户用户' },
     { key: '/rbac/role', icon: <SolutionOutlined />, label: '角色管理' },
     { key: '/rbac/menu', icon: <MenuIcon />, label: '菜单管理' },
-    { key: '/rbac/api', icon: <ApiOutlined />, label: 'API管理' },
+    { key: '/rbac/api', icon: <ApiOutlined />, label: '接口管理' },
   ],
   '/settings': [
     { key: '/settings/general', icon: <SettingOutlined />, label: '默认系统设置' },

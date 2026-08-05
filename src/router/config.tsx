@@ -65,7 +65,7 @@ export const routeConfig: RouteObject[] = [
           {
             path: 'api',
             element: LazyLoad(() => import('@/pages/rbac/Api')),
-            handle: { title: 'API管理' },
+            handle: { title: '接口管理' },
           },
           {
             path: 'user',
