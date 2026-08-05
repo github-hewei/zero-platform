@@ -24,7 +24,6 @@ import { COLORS, LAYOUT } from '@/styles/constants'
 const topNavItems: ItemType[] = [
   { key: '/home', icon: <DashboardOutlined />, label: '仪表盘' },
   { key: '/rbac', icon: <SafetyCertificateOutlined />, label: '权限管理' },
-  { key: '/users', icon: <TeamOutlined />, label: '平台用户' },
   { key: '/settings', icon: <SettingOutlined />, label: '系统设置' },
 ]
 
@@ -36,11 +35,15 @@ const subMenuMap: Record<string, ItemType[]> = {
     { key: '/rbac/api', icon: <ApiOutlined />, label: 'API管理' },
     { key: '/rbac/account', icon: <KeyOutlined />, label: '账号管理' },
   ],
+  '/settings': [
+    { key: '/settings/general', icon: <SettingOutlined />, label: '默认系统设置' },
+    { key: '/settings/users', icon: <TeamOutlined />, label: '平台用户管理' },
+  ],
 }
 
 function resolveTopKey(pathname: string) {
   if (pathname === '/' || pathname.startsWith('/home')) return '/home'
-  for (const prefix of ['/rbac', '/users', '/settings']) {
+  for (const prefix of ['/rbac', '/settings']) {
     if (pathname.startsWith(prefix)) return prefix
   }
   return '/home'

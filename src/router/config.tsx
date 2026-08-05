@@ -75,14 +75,20 @@ export const routeConfig: RouteObject[] = [
         ],
       },
       {
-        path: 'users',
-        element: LazyLoad(() => import('@/pages/users')),
-        handle: { title: '平台用户' },
-      },
-      {
         path: 'settings',
-        element: LazyLoad(() => import('@/pages/settings')),
         handle: { title: '系统设置' },
+        children: [
+          {
+            path: 'general',
+            element: LazyLoad(() => import('@/pages/settings/General')),
+            handle: { title: '默认系统设置' },
+          },
+          {
+            path: 'users',
+            element: LazyLoad(() => import('@/pages/settings/Users')),
+            handle: { title: '平台用户管理' },
+          },
+        ],
       },
     ],
   },
