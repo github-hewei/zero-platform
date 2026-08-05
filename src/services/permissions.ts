@@ -29,6 +29,9 @@ const ALL_ACTIONS = [
   'Api:create',
   'Api:update',
   'Api:delete',
+  'Menu:create',
+  'Menu:update',
+  'Menu:delete',
 ]
 
 const OPERATOR_ACTIONS = [
