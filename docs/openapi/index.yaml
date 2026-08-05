@@ -1,0 +1,134 @@
+openapi: 3.1.0
+info:
+  title: Zero Backend Platform API
+  description: 平台端接口文档（多租户管理）
+  version: 1.0.0
+servers:
+  - url: 'http://localhost:8080/api'
+    description: API Base Path
+
+paths:
+  /captcha/generate:
+    $ref: './paths/captcha.yaml#/~1captcha~1generate'
+  /login:
+    $ref: './paths/auth.yaml#/~1login'
+  /refresh-token:
+    $ref: './paths/auth.yaml#/~1refresh-token'
+  /logout:
+    $ref: './paths/auth.yaml#/~1logout'
+  /change-password:
+    $ref: './paths/auth.yaml#/~1change-password'
+
+  /platform/user/list:
+    $ref: './paths/platform-user.yaml#/~1platform~1user~1list'
+  /platform/user/create:
+    $ref: './paths/platform-user.yaml#/~1platform~1user~1create'
+  /platform/user/update:
+    $ref: './paths/platform-user.yaml#/~1platform~1user~1update'
+  /platform/user/delete:
+    $ref: './paths/platform-user.yaml#/~1platform~1user~1delete'
+  /platform/user/reset-password:
+    $ref: './paths/platform-user.yaml#/~1platform~1user~1reset-password'
+
+  /rbac/store/list:
+    $ref: './paths/rbac-store.yaml#/~1rbac~1store~1list'
+  /rbac/store/create:
+    $ref: './paths/rbac-store.yaml#/~1rbac~1store~1create'
+  /rbac/store/update:
+    $ref: './paths/rbac-store.yaml#/~1rbac~1store~1update'
+  /rbac/store/delete:
+    $ref: './paths/rbac-store.yaml#/~1rbac~1store~1delete'
+  /rbac/store/recycle:
+    $ref: './paths/rbac-store.yaml#/~1rbac~1store~1recycle'
+  /rbac/store/restore:
+    $ref: './paths/rbac-store.yaml#/~1rbac~1store~1restore'
+
+  /rbac/menu/list:
+    $ref: './paths/rbac-menu.yaml#/~1rbac~1menu~1list'
+  /rbac/menu/create:
+    $ref: './paths/rbac-menu.yaml#/~1rbac~1menu~1create'
+  /rbac/menu/update:
+    $ref: './paths/rbac-menu.yaml#/~1rbac~1menu~1update'
+  /rbac/menu/delete:
+    $ref: './paths/rbac-menu.yaml#/~1rbac~1menu~1delete'
+  /rbac/menu/sync:
+    $ref: './paths/rbac-menu.yaml#/~1rbac~1menu~1sync'
+  /rbac/menu/api/list:
+    $ref: './paths/rbac-menu.yaml#/~1rbac~1menu~1api~1list'
+  /rbac/menu/api/save:
+    $ref: './paths/rbac-menu.yaml#/~1rbac~1menu~1api~1save'
+
+  /rbac/api/list:
+    $ref: './paths/rbac-api.yaml#/~1rbac~1api~1list'
+  /rbac/api/create:
+    $ref: './paths/rbac-api.yaml#/~1rbac~1api~1create'
+  /rbac/api/update:
+    $ref: './paths/rbac-api.yaml#/~1rbac~1api~1update'
+  /rbac/api/delete:
+    $ref: './paths/rbac-api.yaml#/~1rbac~1api~1delete'
+
+  /rbac/role/list:
+    $ref: './paths/rbac-role.yaml#/~1rbac~1role~1list'
+  /rbac/role/create:
+    $ref: './paths/rbac-role.yaml#/~1rbac~1role~1create'
+  /rbac/role/update:
+    $ref: './paths/rbac-role.yaml#/~1rbac~1role~1update'
+  /rbac/role/delete:
+    $ref: './paths/rbac-role.yaml#/~1rbac~1role~1delete'
+  /rbac/role/set-menus:
+    $ref: './paths/rbac-role.yaml#/~1rbac~1role~1set-menus'
+
+  /rbac/user/list:
+    $ref: './paths/rbac-user.yaml#/~1rbac~1user~1list'
+  /rbac/user/create:
+    $ref: './paths/rbac-user.yaml#/~1rbac~1user~1create'
+  /rbac/user/update:
+    $ref: './paths/rbac-user.yaml#/~1rbac~1user~1update'
+  /rbac/user/delete:
+    $ref: './paths/rbac-user.yaml#/~1rbac~1user~1delete'
+  /rbac/user/reset-password:
+    $ref: './paths/rbac-user.yaml#/~1rbac~1user~1reset-password'
+
+  /setting/qiniu-token:
+    $ref: './paths/setting.yaml#/~1setting~1qiniu-token'
+  /setting/default/list:
+    $ref: './paths/setting.yaml#/~1setting~1default~1list'
+  /setting/default/create:
+    $ref: './paths/setting.yaml#/~1setting~1default~1create'
+  /setting/default/update:
+    $ref: './paths/setting.yaml#/~1setting~1default~1update'
+  /setting/default/delete:
+    $ref: './paths/setting.yaml#/~1setting~1default~1delete'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT令牌认证
+  schemas:
+    CommonResponse:
+      $ref: './schemas.yaml#/schemas/CommonResponse'
+    PlatformLoginRequest:
+      $ref: './schemas.yaml#/schemas/PlatformLoginRequest'
+    PlatformLoginResponse:
+      $ref: './schemas.yaml#/schemas/PlatformLoginResponse'
+    PlatformUser:
+      $ref: './schemas.yaml#/schemas/PlatformUser'
+    RbacStore:
+      $ref: './schemas.yaml#/schemas/RbacStore'
+    RbacUser:
+      $ref: './schemas.yaml#/schemas/RbacUser'
+    RbacMenu:
+      $ref: './schemas.yaml#/schemas/RbacMenu'
+    RbacApi:
+      $ref: './schemas.yaml#/schemas/RbacApi'
+    RbacRole:
+      $ref: './schemas.yaml#/schemas/RbacRole'
+    SettingDefault:
+      $ref: './schemas.yaml#/schemas/SettingDefault'
+    ChangePasswordRequest:
+      $ref: './schemas.yaml#/schemas/ChangePasswordRequest'
+    CaptchaGenerateResponse:
+      $ref: './schemas.yaml#/schemas/CaptchaGenerateResponse'

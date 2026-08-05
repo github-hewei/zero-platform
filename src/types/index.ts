@@ -1,7 +1,125 @@
-export interface UserInfo {
+export interface CommonResponse<T = unknown> {
+  errcode: number
+  message: string
+  data: T
+  cost: string
+  traceId: string
+}
+
+export interface PaginatedRequest {
+  page: number
+  limit: number
+}
+
+export interface PaginatedData<T> {
+  list: T[]
+  total: number
+}
+
+export interface PlatformUser {
   id: number
   username: string
-  real_name?: string
-  avatar?: string
-  role?: string
+  real_name: string
+  avatar_id: number
+  role: number
+  status: number
+  last_login_time: number
+  last_login_ip: string
+  created_at: number
+  updated_at: number
+}
+
+export interface LoginRequest {
+  username: string
+  password: string
+  captcha_id: string
+  captcha_code: string
+}
+
+export interface LoginResponse {
+  token: string
+  ttl: number
+  user: PlatformUser
+}
+
+export interface ChangePasswordRequest {
+  old_password: string
+  new_password: string
+}
+
+export interface CaptchaResponse {
+  captcha_id: string
+  master_image: string
+  thumb_image: string
+}
+
+export interface RbacStore {
+  id: number
+  name: string
+  short_name: string
+  contact: string
+  contact_phone: string
+  description: string
+  logo_image_id: number
+  sort: number
+  is_recycle: number
+  created_at: number
+  updated_at: number
+}
+
+export interface RbacUser {
+  id: number
+  username: string
+  real_name: string
+  is_super: number
+  sort: number
+  store_id: number
+  created_at: number
+  updated_at: number
+}
+
+export interface RbacMenu {
+  id: number
+  type: number
+  name: string
+  path: string
+  is_page: number
+  module_key: string
+  action_mark: string
+  parent_id: number
+  sort: number
+  created_at: number
+  updated_at: number
+  children?: RbacMenu[]
+  actions?: RbacMenu[]
+}
+
+export interface RbacApi {
+  id: number
+  name: string
+  url: string
+  parent_id: number
+  sort: number
+  created_at: number
+  updated_at: number
+  children?: RbacApi[]
+}
+
+export interface RbacRole {
+  id: number
+  role_name: string
+  parent_id: number
+  sort: number
+  store_id: number
+  created_at: number
+  updated_at: number
+}
+
+export interface SettingDefault {
+  id: number
+  setting_key: string
+  setting_values: string
+  description: string
+  created_at: number
+  updated_at: number
 }
