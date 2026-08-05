@@ -45,26 +45,27 @@ export default function PlatformUserPage() {
     async (page?: number, limit?: number) => {
       setLoading(true)
       try {
-        const p = page ?? pagination.page
-        const l = limit ?? pagination.limit
         const searchValues = searchForm.getFieldsValue()
         const res = await getPlatformUserList({
-          page: p,
-          limit: l,
+          page: page ?? pagination.page,
+          limit: limit ?? pagination.limit,
           username: searchValues.username || undefined,
           real_name: searchValues.real_name || undefined,
         })
         setData(res?.list || [])
         setTotal(res?.total || 0)
-        setPagination({ page: p, limit: l })
+        setPagination((prev) => {
+          const p = page ?? prev.page
+          const l = limit ?? prev.limit
+          return { page: p, limit: l }
+        })
       } catch (err) {
         message.error(err instanceof Error ? err.message : '加载失败')
       } finally {
         setLoading(false)
       }
     },
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [message],
+    [message, pagination.limit, pagination.page, searchForm],
   )
 
   useEffect(() => {
@@ -278,7 +279,7 @@ export default function PlatformUserPage() {
         open={modalOpen}
         onOk={handleModalOk}
         onCancel={() => setModalOpen(false)}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item

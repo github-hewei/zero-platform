@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import { Button, Form, Input, App, Modal, Space } from 'antd'
 import { UserOutlined, LockOutlined, ReloadOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore, usePermissionStore } from '@/stores'
-import { login as loginApi, getCaptcha, getPermissions } from '@/services/auth'
+import { login as loginApi, getCaptcha } from '@/services/auth'
+import { getPermissionsByRole } from '@/services/permissions'
 import type { CaptchaResponse } from '@/types'
 import { COLORS } from '@/styles/constants'
 
@@ -24,6 +25,14 @@ export default function LoginPage() {
   const navigate = useNavigate()
   const { message } = App.useApp()
   const [form] = Form.useForm()
+
+  const token = useAuthStore((s) => s.token)
+
+  useEffect(() => {
+    if (token) {
+      navigate('/home', { replace: true })
+    }
+  }, [token, navigate])
 
   const fetchCaptcha = useCallback(async () => {
     setCaptchaLoading(true)
@@ -94,14 +103,8 @@ export default function LoginPage() {
       useAuthStore.getState().setAuth(result.token, result.user)
       message.success('登录成功')
 
-      try {
-        const perm = await getPermissions()
-        usePermissionStore.getState().setPermissions(perm.menus, perm.paths, perm.actions)
-      } catch {
-        message.warning('权限加载失败，部分功能可能不可用')
-      }
-
-      navigate('/home')
+      const perm = getPermissionsByRole(result.user.role)
+      usePermissionStore.getState().setPermissions(perm.menus, perm.paths, perm.actions)
     } catch (err) {
       message.error(err instanceof Error ? err.message : '登录失败')
     } finally {

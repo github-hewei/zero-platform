@@ -89,11 +89,14 @@ export default function PlatformLayout() {
   const subItems = subMenus[activeTopKey]
   const hasSubMenu = subItems != null
 
-  const userMenuItems: ItemType[] = [
-    { key: 'password', icon: <UserOutlined />, label: '修改密码' },
-    { type: 'divider' },
-    { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true },
-  ]
+  const userMenuItems = useMemo<ItemType[]>(
+    () => [
+      { key: 'password', icon: <UserOutlined />, label: '修改密码' },
+      { type: 'divider' },
+      { key: 'logout', icon: <LogoutOutlined />, label: '退出登录', danger: true },
+    ],
+    [],
+  )
 
   const handleUserMenuClick = async ({ key }: { key: string }) => {
     if (key === 'password') {
@@ -247,7 +250,7 @@ export default function PlatformLayout() {
         open={pwdOpen}
         onOk={handlePwdOk}
         onCancel={() => setPwdOpen(false)}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={pwdForm} layout="vertical" style={{ marginTop: 16 }}>
           <Form.Item
