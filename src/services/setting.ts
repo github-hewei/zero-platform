@@ -32,11 +32,3 @@ export async function getFormConfigs(params?: { only_platform?: boolean }) {
   const res = await http.post<CommonResponse>('/setting/form-configs', params || {})
   return res.data
 }
-
-export async function getQiniuToken() {
-  const res =
-    await http.post<CommonResponse<{ token: string; domain: string; upload_url: string }>>(
-      '/setting/qiniu-token',
-    )
-  return res.data
-}
