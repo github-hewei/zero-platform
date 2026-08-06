@@ -218,3 +218,25 @@ export interface MenuSyncItem {
   parent_id: number
   children?: MenuSyncItem[]
 }
+
+export interface DailyCount {
+  date: string
+  count: number
+}
+
+export interface DashboardOverview {
+  store_total: number
+  store_monthly_new: number
+  user_total: number
+  user_monthly_new: number
+  file_total: number
+  file_total_size: number
+}
+
+export interface DashboardStats {
+  overview: DashboardOverview
+  trends: {
+    store: DailyCount[]
+    user: DailyCount[]
+  }
+}

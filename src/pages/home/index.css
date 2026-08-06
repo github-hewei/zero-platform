@@ -2,59 +2,69 @@
   max-width: 100%;
 }
 
+.dash-error {
+  border: 1px solid var(--card-border, #1e293b);
+  background: var(--card-bg, #151d2e);
+  border-radius: 6px;
+  padding: 48px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.dash-error-text {
+  font-size: 13px;
+  color: var(--text-secondary, #64748b);
+}
+
 .metric-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 16px;
   margin-bottom: 24px;
+  margin-top: 4px;
 }
 
 .metric-card {
   background: var(--card-bg, #151d2e);
   border: 1px solid var(--card-border, #1e293b);
   border-radius: 6px;
-  padding: 20px 24px;
+  padding: 20px 22px;
+}
+
+.metric-card.accent .metric-value {
+  color: #f97316;
 }
 
 .metric-value {
   font-family: 'JetBrains Mono', monospace;
-  font-size: 28px;
+  font-size: 26px;
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: -1px;
-  color: inherit;
 }
 
 .metric-label {
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 1px;
-  margin-top: 4px;
+  margin-top: 6px;
   color: var(--text-tertiary, #64748b);
 }
 
-.metric-sub {
-  font-size: 12px;
-  margin-top: 8px;
-  color: var(--text-secondary, #64748b);
-}
-
-.metric-sub em {
-  font-style: normal;
-  font-weight: 500;
-}
-
-.metric-sub.up em {
-  color: #16a34a;
-}
-
-.metric-sub.down em {
-  color: #dc2626;
-}
-
-.section-card {
+.chart-card {
+  background: var(--card-bg, #151d2e);
+  border: 1px solid var(--card-border, #1e293b);
   border-radius: 6px;
-  margin-bottom: 24px;
+  padding: 20px 24px 12px;
+}
+
+.chart-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
 }
 
 .section-title {
@@ -64,134 +74,35 @@
   letter-spacing: 2px;
 }
 
-.table-toolbar {
-  margin-bottom: 16px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.status-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  margin-right: 6px;
-}
-
-.status-dot.normal {
-  background: #16a34a;
-}
-
-.status-dot.warning {
-  background: #f59e0b;
-}
-
-.status-dot.suspended {
-  background: #dc2626;
-}
-
-.bottom-panels {
-  display: grid;
-  grid-template-columns: 2fr 3fr;
-  gap: 16px;
-}
-
-.health-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 10px 0;
-  border-bottom: 1px solid var(--divider, #1e293b);
-}
-
-.health-item:last-child {
-  border-bottom: none;
-}
-
-.health-label {
-  font-size: 13px;
-}
-
-.health-bar {
-  width: 120px;
-  height: 6px;
-  background: var(--bar-bg, #1e293b);
-  border-radius: 3px;
-  overflow: hidden;
-}
-
-.health-bar-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s ease;
-}
-
-.health-bar-fill.good {
-  background: #16a34a;
-}
-
-.health-bar-fill.caution {
-  background: #f59e0b;
-}
-
-.health-bar-fill.danger {
-  background: #dc2626;
-}
-
-.log-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--divider, #1e293b);
-  font-size: 13px;
-}
-
-.log-item:last-child {
-  border-bottom: none;
-}
-
-.log-time {
-  font-family: 'JetBrains Mono', monospace;
+.chart-hint {
   font-size: 12px;
-  white-space: nowrap;
-  min-width: 52px;
+  color: var(--text-tertiary, #64748b);
 }
 
-.log-text {
-  flex: 1;
+.chart-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
 }
 
-.log-tag {
-  font-size: 11px;
-  padding: 1px 8px;
-  border-radius: 3px;
-  font-weight: 500;
-  white-space: nowrap;
-}
-
-.log-tag.operate {
-  background: rgba(14, 165, 233, 0.1);
-  color: #0ea5e9;
-}
-
-.log-tag.alert {
-  background: rgba(245, 158, 11, 0.12);
-  color: #d4950b;
+.chart-empty {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 300px;
+  font-size: 13px;
+  color: var(--text-tertiary, #64748b);
 }
 
 @media (max-width: 1024px) {
   .metric-strip {
-    grid-template-columns: repeat(2, 1fr);
-  }
-  .bottom-panels {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (max-width: 640px) {
   .metric-strip {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
 }

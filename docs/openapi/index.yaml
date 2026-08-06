@@ -8,6 +8,8 @@ servers:
     description: API Base Path
 
 paths:
+  /dashboard/stats:
+    $ref: './paths/dashboard.yaml#/~1dashboard~1stats'
   /captcha/generate:
     $ref: './paths/captcha.yaml#/~1captcha~1generate'
   /login:
@@ -86,6 +88,8 @@ paths:
     $ref: './paths/rbac-user.yaml#/~1rbac~1user~1update'
   /rbac/user/delete:
     $ref: './paths/rbac-user.yaml#/~1rbac~1user~1delete'
+  /rbac/user/set-roles:
+    $ref: './paths/rbac-user.yaml#/~1rbac~1user~1set-roles'
   /rbac/user/reset-password:
     $ref: './paths/rbac-user.yaml#/~1rbac~1user~1reset-password'
 

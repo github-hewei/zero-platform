@@ -1,139 +1,144 @@
-import { useMemo } from 'react'
-import { Table, Input, Select, Button, Tag, Space, Card } from 'antd'
-import type { ColumnsType } from 'antd/es/table'
-import { SearchOutlined, ReloadOutlined, EyeOutlined } from '@ant-design/icons'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Button, Spin } from 'antd'
+import ReactECharts from 'echarts-for-react'
+import type { EChartsOption } from 'echarts'
 import { useThemeStore } from '@/stores'
 import { COLORS } from '@/styles/constants'
+import { getDashboardStats } from '@/services/dashboard'
+import type { DashboardStats, DailyCount } from '@/types'
 import './index.css'
 
-interface TenantRecord {
-  id: number
-  name: string
-  code: string
-  status: 'normal' | 'warning' | 'suspended'
-  users: number
-  storageUsed: string
-  plan: string
-  createdAt: string
-  contactPhone: string
+function formatBytes(bytes: number): string {
+  if (!bytes) return '0 B'
+  const units = ['B', 'KB', 'MB', 'GB', 'TB']
+  let value = bytes
+  let unit = 0
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit++
+  }
+  return `${value >= 100 ? value.toFixed(0) : value.toFixed(1)} ${units[unit]}`
 }
 
-function buildMockTenants(): TenantRecord[] {
-  const statuses: TenantRecord['status'][] = [
-    'normal',
-    'normal',
-    'normal',
-    'normal',
-    'normal',
-    'warning',
-    'suspended',
-  ]
-  return Array.from({ length: 50 }, (_, i) => {
-    const idx = (i * 7 + 3) % statuses.length
-    return {
-      id: i + 1,
-      name: `企业${String(i + 1).padStart(3, '0')}`,
-      code: `T${String(i + 1).padStart(4, '0')}`,
-      status: statuses[idx],
-      users: ((i * 137 + 50) % 800) + 10,
-      storageUsed: `${(((i * 73 + 20) % 200) + 1).toFixed(1)} GB`,
-      plan: ['基础版', '专业版', '企业版'][i % 3],
-      createdAt: `202${(i % 4) + 1}-${String((i % 12) + 1).padStart(2, '0')}-${String((i % 28) + 1).padStart(2, '0')}`,
-      contactPhone: `138${String((i * 113 + 5000) % 100000000).padStart(8, '0')}`,
-    }
-  })
-}
+function buildTrendOption(store: DailyCount[], user: DailyCount[], isDark: boolean): EChartsOption {
+  const palette = isDark ? COLORS.dark : COLORS.light
+  const dates = [...new Set([...store.map((d) => d.date), ...user.map((d) => d.date)])].sort()
+  const storeMap = new Map(store.map((d) => [d.date, d.count]))
+  const userMap = new Map(user.map((d) => [d.date, d.count]))
 
-const mockTenants = buildMockTenants()
-
-const statusMap: Record<TenantRecord['status'], { label: string; color: string }> = {
-  normal: { label: '正常', color: 'green' },
-  warning: { label: '预警', color: 'gold' },
-  suspended: { label: '停用', color: 'red' },
-}
-
-const columns: ColumnsType<TenantRecord> = [
-  {
-    title: '编号',
-    dataIndex: 'code',
-    key: 'code',
-    width: 100,
-    render: (v: string) => (
-      <span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 12 }}>{v}</span>
-    ),
-  },
-  {
-    title: '企业名称',
-    dataIndex: 'name',
-    key: 'name',
-    width: 160,
-    render: (name: string, record) => (
-      <Space>
-        <span className={`status-dot ${record.status}`} />
-        <span>{name}</span>
-      </Space>
-    ),
-  },
-  {
-    title: '状态',
-    dataIndex: 'status',
-    key: 'status',
-    width: 80,
-    render: (s: TenantRecord['status']) => {
-      const m = statusMap[s]
-      return <Tag color={m.color}>{m.label}</Tag>
+  return {
+    backgroundColor: 'transparent',
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: palette.elevated,
+      borderColor: palette.border,
+      textStyle: { color: palette.textPrimary, fontSize: 12 },
     },
-  },
-  {
-    title: '用户数',
-    dataIndex: 'users',
-    key: 'users',
-    width: 90,
-    sorter: (a, b) => a.users - b.users,
-    render: (n: number) => n.toLocaleString(),
-  },
-  { title: '存储', dataIndex: 'storageUsed', key: 'storageUsed', width: 100 },
-  { title: '套餐', dataIndex: 'plan', key: 'plan', width: 90 },
-  { title: '电话', dataIndex: 'contactPhone', key: 'contactPhone', width: 130 },
-  {
-    title: '入驻时间',
-    dataIndex: 'createdAt',
-    key: 'createdAt',
-    width: 110,
-    sorter: (a, b) => a.createdAt.localeCompare(b.createdAt),
-  },
-  {
-    title: '操作',
-    key: 'action',
-    width: 80,
-    fixed: 'right',
-    render: () => (
-      <Button type="link" size="small" icon={<EyeOutlined />}>
-        查看
-      </Button>
-    ),
-  },
-]
-
-const healthMetrics = [
-  { label: 'CPU', value: 34, status: 'good' as const },
-  { label: '内存', value: 58, status: 'good' as const },
-  { label: '磁盘', value: 72, status: 'caution' as const },
-  { label: '数据库连接', value: 28, status: 'good' as const },
-  { label: '缓存命中率', value: 94, status: 'good' as const },
-]
-
-const recentLogs = [
-  { time: '14:32', text: '修改了企业「企业015」的套餐配置', type: 'operate' as const },
-  { time: '14:28', text: '租户 T-0089 SSL 证书将于 7 天后过期', type: 'alert' as const },
-  { time: '14:15', text: '创建了新的平台角色「审计管理员」', type: 'operate' as const },
-  { time: '13:58', text: '企业「企业042」存储用量已达配额 85%', type: 'alert' as const },
-  { time: '13:45', text: '新企业「企业200」注册并通过审核', type: 'operate' as const },
-  { time: '13:20', text: '账号 operator_03 密码已被重置', type: 'operate' as const },
-]
+    legend: {
+      top: 0,
+      right: 0,
+      icon: 'circle',
+      itemWidth: 8,
+      itemHeight: 8,
+      textStyle: { color: palette.textSecondary, fontSize: 12 },
+      data: ['企业新增', '用户新增'],
+    },
+    grid: { top: 36, left: 8, right: 8, bottom: 0, containLabel: true },
+    xAxis: {
+      type: 'category',
+      boundaryGap: false,
+      data: dates.map((d) => d.slice(5)),
+      axisLine: { lineStyle: { color: palette.border } },
+      axisTick: { show: false },
+      axisLabel: {
+        color: palette.textTertiary,
+        fontSize: 11,
+        formatter: (v: string) => v.replace('-', '/'),
+      },
+    },
+    yAxis: {
+      type: 'value',
+      minInterval: 1,
+      splitLine: { lineStyle: { color: palette.border } },
+      axisLabel: { color: palette.textTertiary, fontSize: 11 },
+    },
+    series: [
+      {
+        name: '企业新增',
+        type: 'line',
+        smooth: true,
+        symbol: 'none',
+        data: dates.map((d) => storeMap.get(d) ?? 0),
+        lineStyle: { width: 2, color: COLORS.primary },
+        itemStyle: { color: COLORS.primary },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              {
+                offset: 0,
+                color: isDark ? 'rgba(249, 115, 22, 0.25)' : 'rgba(249, 115, 22, 0.14)',
+              },
+              { offset: 1, color: 'rgba(249, 115, 22, 0)' },
+            ],
+          },
+        },
+      },
+      {
+        name: '用户新增',
+        type: 'line',
+        smooth: true,
+        symbol: 'none',
+        data: dates.map((d) => userMap.get(d) ?? 0),
+        lineStyle: { width: 2, color: COLORS.info },
+        itemStyle: { color: COLORS.info },
+        areaStyle: {
+          color: {
+            type: 'linear',
+            x: 0,
+            y: 0,
+            x2: 0,
+            y2: 1,
+            colorStops: [
+              {
+                offset: 0,
+                color: isDark ? 'rgba(14, 165, 233, 0.22)' : 'rgba(14, 165, 233, 0.12)',
+              },
+              { offset: 1, color: 'rgba(14, 165, 233, 0)' },
+            ],
+          },
+        },
+      },
+    ],
+  }
+}
 
 export default function DashboardPage() {
   const isDark = useThemeStore((s) => s.mode === 'dark')
+  const [stats, setStats] = useState<DashboardStats | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const data = await getDashboardStats()
+      setStats(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加载失败')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    load()
+  }, [load])
 
   const cardVars = useMemo(() => {
     if (isDark) {
@@ -142,8 +147,6 @@ export default function DashboardPage() {
         '--card-border': COLORS.dark.border,
         '--text-tertiary': COLORS.dark.textTertiary,
         '--text-secondary': COLORS.dark.textSecondary,
-        '--divider': COLORS.dark.border,
-        '--bar-bg': COLORS.dark.border,
       } as React.CSSProperties
     }
     return {
@@ -151,126 +154,69 @@ export default function DashboardPage() {
       '--card-border': COLORS.light.border,
       '--text-tertiary': COLORS.light.textTertiary,
       '--text-secondary': COLORS.light.textSecondary,
-      '--divider': '#F1F5F9',
-      '--bar-bg': '#F1F5F9',
     } as React.CSSProperties
   }, [isDark])
 
-  const stats = useMemo(() => {
-    const total = mockTenants.length
-    const normal = mockTenants.filter((t) => t.status === 'normal').length
-    const warning = mockTenants.filter((t) => t.status === 'warning').length
-    const suspended = mockTenants.filter((t) => t.status === 'suspended').length
-    const totalUsers = mockTenants.reduce((s, t) => s + t.users, 0)
-    return { total, normal, warning, suspended, totalUsers }
-  }, [])
+  const metrics = useMemo(() => {
+    if (!stats) return []
+    const { overview } = stats
+    return [
+      { label: '企业总数', value: overview.store_total.toLocaleString(), accent: false },
+      { label: '租户用户', value: overview.user_total.toLocaleString(), accent: false },
+      { label: '文件总数', value: overview.file_total.toLocaleString(), accent: false },
+      { label: '存储占用', value: formatBytes(overview.file_total_size), accent: false },
+      { label: '本月新增企业', value: `+${overview.store_monthly_new}`, accent: true },
+      { label: '本月新增用户', value: `+${overview.user_monthly_new}`, accent: true },
+    ]
+  }, [stats])
+
+  const trendOption = useMemo(() => {
+    if (!stats) return null
+    return buildTrendOption(stats.trends.store, stats.trends.user, isDark)
+  }, [stats, isDark])
+
+  const hasTrendData = useMemo(
+    () => !!trendOption && (stats?.trends.store.length ?? 0) + (stats?.trends.user.length ?? 0) > 0,
+    [trendOption, stats],
+  )
 
   return (
     <div className="dashboard" style={cardVars}>
-      <div className="metric-strip">
-        <div className="metric-card">
-          <div className="metric-value">{stats.total.toLocaleString()}</div>
-          <div className="metric-label">企业总数</div>
-          <div className="metric-sub up">
-            正常运营 <em>{stats.normal}</em> 家
-          </div>
+      {error ? (
+        <div className="dash-error">
+          <div className="dash-error-text">加载失败：{error}</div>
+          <Button type="primary" onClick={load}>
+            重试
+          </Button>
         </div>
-        <div className="metric-card">
-          <div className="metric-value">{stats.totalUsers.toLocaleString()}</div>
-          <div className="metric-label">平台总用户</div>
-          <div className="metric-sub up">
-            较上月 <em>+8.3%</em>
+      ) : (
+        <>
+          <div className="metric-strip">
+            {metrics.map((m) => (
+              <div className={`metric-card${m.accent ? ' accent' : ''}`} key={m.label}>
+                <div className="metric-value">{loading ? '—' : m.value}</div>
+                <div className="metric-label">{m.label}</div>
+              </div>
+            ))}
           </div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-value">{stats.warning + stats.suspended}</div>
-          <div className="metric-label">需关注</div>
-          <div className="metric-sub down">
-            预警 <em>{stats.warning}</em> · 停用 <em>{stats.suspended}</em>
-          </div>
-        </div>
-        <div className="metric-card">
-          <div className="metric-value">{stats.normal}</div>
-          <div className="metric-label">健康运行</div>
-          <div className="metric-sub up">
-            占比 <em>{((stats.normal / stats.total) * 100).toFixed(1)}%</em>
-          </div>
-        </div>
-      </div>
 
-      <Card className="section-card" title={<span className="section-title">企业列表</span>}>
-        <div className="table-toolbar">
-          <Space>
-            <Input
-              placeholder="搜索企业名称或编号"
-              prefix={<SearchOutlined />}
-              style={{ width: 240 }}
-              allowClear
-            />
-            <Select
-              placeholder="状态筛选"
-              style={{ width: 120 }}
-              allowClear
-              options={[
-                { value: 'normal', label: '正常' },
-                { value: 'warning', label: '预警' },
-                { value: 'suspended', label: '停用' },
-              ]}
-            />
-          </Space>
-          <Button icon={<ReloadOutlined />}>刷新</Button>
-        </div>
-        <Table
-          columns={columns}
-          dataSource={mockTenants}
-          rowKey="id"
-          size="middle"
-          pagination={{
-            showSizeChanger: true,
-            showQuickJumper: true,
-            showTotal: (total) => `共 ${total} 家企业`,
-            pageSizeOptions: ['20', '50', '100'],
-            defaultPageSize: 20,
-          }}
-          scroll={{ x: 1050 }}
-        />
-      </Card>
-
-      <div className="bottom-panels">
-        <Card className="section-card" title={<span className="section-title">系统健康</span>}>
-          {healthMetrics.map((m) => (
-            <div className="health-item" key={m.label}>
-              <span className="health-label">{m.label}</span>
-              <Space size={8}>
-                <div className="health-bar">
-                  <div className={`health-bar-fill ${m.status}`} style={{ width: `${m.value}%` }} />
-                </div>
-                <span
-                  style={{
-                    fontFamily: "'JetBrains Mono', monospace",
-                    fontSize: 12,
-                    fontWeight: 500,
-                  }}
-                >
-                  {m.value}%
-                </span>
-              </Space>
+          <div className="chart-card">
+            <div className="chart-head">
+              <span className="section-title">近30天新增趋势</span>
+              <span className="chart-hint">企业 / 用户每日新增数量</span>
             </div>
-          ))}
-        </Card>
-
-        <Card className="section-card" title={<span className="section-title">最近操作</span>}>
-          {recentLogs.map((log, i) => (
-            <div className="log-item" key={i}>
-              <span className="log-time">{log.time}</span>
-              <span className="log-text">{log.text}</span>
-              <span className={`log-tag ${log.type}`}>
-                {log.type === 'alert' ? '告警' : '操作'}
-              </span>
-            </div>
-          ))}
-        </Card>
-      </div>
+            {loading ? (
+              <div className="chart-loading">
+                <Spin />
+              </div>
+            ) : hasTrendData ? (
+              <ReactECharts option={trendOption} style={{ height: 300 }} notMerge />
+            ) : (
+              <div className="chart-empty">暂无数据</div>
+            )}
+          </div>
+        </>
+      )}
     </div>
   )
 }
