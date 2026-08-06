@@ -1,3 +1,5 @@
+import type { ReactNode } from 'react'
+
 export interface CommonResponse<T = unknown> {
   errcode: number
   message: string
@@ -169,4 +171,50 @@ export interface UploadFile {
   store_id: number
   created_at: number
   updated_at: number
+}
+
+export interface FormOption {
+  label: string
+  value: string
+}
+
+export interface FormField {
+  key: string
+  label: string
+  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'switch' | 'image' | 'file'
+  required: boolean
+  options: FormOption[] | null
+}
+
+export interface FormGroup {
+  key: string
+  label: string
+  description: string
+  only_platform: boolean
+  fields: FormField[]
+}
+
+export interface MenuTreeNode {
+  title: ReactNode
+  key: number
+  children?: MenuTreeNode[]
+}
+
+export interface MenuImportItem {
+  path: string
+  title: string
+  module_key: string
+  children?: MenuImportItem[]
+  meta?: { sort?: number }
+}
+
+export interface MenuSyncItem {
+  name: string
+  type: number
+  path: string
+  is_page: number
+  module_key: string
+  sort: number
+  parent_id: number
+  children?: MenuSyncItem[]
 }

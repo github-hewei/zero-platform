@@ -9,26 +9,10 @@ import {
 } from '@/services/setting'
 import ImageUpload from '@/components/ImageUpload'
 import FileUpload from '@/components/FileUpload'
-import type { SettingDefault } from '@/types'
-
-interface FieldConfig {
-  key: string
-  label: string
-  type: 'text' | 'textarea' | 'select' | 'checkbox' | 'switch' | 'image' | 'file'
-  required: boolean
-  options: { label: string; value: string }[] | null
-}
-
-interface GroupConfig {
-  key: string
-  label: string
-  description: string
-  only_platform: boolean
-  fields: FieldConfig[]
-}
+import type { SettingDefault, FormField, FormGroup } from '@/types'
 
 export default function GeneralSettingsPage() {
-  const [groups, setGroups] = useState<GroupConfig[]>([])
+  const [groups, setGroups] = useState<FormGroup[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<Record<string, boolean>>({})
   const [settingIds, setSettingIds] = useState<Record<string, number>>({})
@@ -39,8 +23,7 @@ export default function GeneralSettingsPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await getFormConfigs()
-        const configs = (res.data as unknown as GroupConfig[]) || []
+        const configs = await getFormConfigs()
         setGroups(configs)
         if (configs.length > 0) setActiveTab(configs[0].key)
 
@@ -52,7 +35,7 @@ export default function GeneralSettingsPage() {
           ids[item.setting_key] = item.id
           try {
             const parsed = JSON.parse(item.setting_values)
-            const group = configs.find((g: GroupConfig) => g.key === item.setting_key)
+            const group = configs.find((g: FormGroup) => g.key === item.setting_key)
             if (group) {
               for (const field of group.fields) {
                 savedValues[`${item.setting_key}.${field.key}`] = parsed[field.key] ?? undefined
@@ -74,7 +57,7 @@ export default function GeneralSettingsPage() {
     load()
   }, [message, form])
 
-  const handleSave = async (group: GroupConfig) => {
+  const handleSave = async (group: FormGroup) => {
     const fieldValues: Record<string, unknown> = {}
     for (const field of group.fields) {
       fieldValues[field.key] = form.getFieldValue(`${group.key}.${field.key}`)
@@ -110,7 +93,7 @@ export default function GeneralSettingsPage() {
     }
   }
 
-  const renderField = (field: FieldConfig, groupKey: string) => {
+  const renderField = (field: FormField, groupKey: string) => {
     const name = `${groupKey}.${field.key}`
 
     switch (field.type) {

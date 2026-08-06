@@ -27,53 +27,17 @@ import {
   UploadOutlined,
 } from '@ant-design/icons'
 import Permission from '@/components/Permission'
-import type { RbacMenu, RbacApi, CommonResponse } from '@/types'
-import http from '@/services/http'
-
-async function getMenuList() {
-  const res = await http.post<CommonResponse<RbacMenu[]>>('/rbac/menu/list', {})
-  return res.data.data || []
-}
-
-async function createMenu(data: Partial<RbacMenu>) {
-  const res = await http.post<CommonResponse>('/rbac/menu/create', data)
-  return res.data
-}
-
-async function updateMenu(data: Partial<RbacMenu> & { id: number }) {
-  const res = await http.post<CommonResponse>('/rbac/menu/update', data)
-  return res.data
-}
-
-async function syncMenu(data: object[]) {
-  const res = await http.post<CommonResponse>('/rbac/menu/sync', data)
-  return res.data
-}
-
-async function deleteMenu(id: number) {
-  const res = await http.post<CommonResponse>('/rbac/menu/delete', { id })
-  return res.data
-}
-
-async function getMenuApis(menuId: number) {
-  const res = await http.post<CommonResponse<{ list: RbacApi[] }>>('/rbac/menu/api/list', {
-    menu_id: menuId,
-  })
-  return res.data.data.list || []
-}
-
-async function getAllApis() {
-  const res = await http.post<CommonResponse<RbacApi[]>>('/rbac/api/list', {})
-  return res.data.data || []
-}
-
-async function saveMenuApis(menuId: number, apiIds: number[]) {
-  const res = await http.post<CommonResponse>('/rbac/menu/api/save', {
-    menu_id: menuId,
-    api_ids: apiIds,
-  })
-  return res.data
-}
+import {
+  getMenuList,
+  createMenu,
+  updateMenu,
+  deleteMenu,
+  syncMenu,
+  getMenuApis,
+  getApiList,
+  saveMenuApis,
+} from '@/services/rbac'
+import type { RbacMenu, RbacApi, MenuImportItem, MenuSyncItem, MenuTreeNode } from '@/types'
 
 export default function MenuPage() {
   const [loading, setLoading] = useState(false)
@@ -198,7 +162,7 @@ export default function MenuPage() {
     setApiOpen(true)
     setApiLoading(true)
     try {
-      const [all, bound] = await Promise.all([getAllApis(), getMenuApis(record.id)])
+      const [all, bound] = await Promise.all([getApiList(), getMenuApis(record.id)])
       setAllApis(all)
       setSelectedApiIds(bound.map((a) => a.id))
     } catch (err) {
@@ -319,25 +283,7 @@ export default function MenuPage() {
     if (!importData) return
     setImporting(true)
     try {
-      interface MenuItem {
-        path: string
-        title: string
-        module_key: string
-        children?: MenuItem[]
-        meta?: { sort?: number }
-      }
-      interface SyncItem {
-        name: string
-        type: number
-        path: string
-        is_page: number
-        module_key: string
-        sort: number
-        parent_id: number
-        children?: SyncItem[]
-      }
-
-      const convert = (items: MenuItem[], parentId = 0): SyncItem[] =>
+      const convert = (items: MenuImportItem[], parentId = 0): MenuSyncItem[] =>
         items.map((item) => ({
           name: item.title,
           type: 10,
@@ -349,7 +295,7 @@ export default function MenuPage() {
           children: item.children?.length ? convert(item.children, parentId) : undefined,
         }))
 
-      const res = await syncMenu(convert(importData as MenuItem[]))
+      const res = await syncMenu(convert(importData as MenuImportItem[]))
       message.success(res.message || '导入成功')
       setImportOpen(false)
       setImportFile(null)
@@ -376,12 +322,7 @@ export default function MenuPage() {
   }, [data])
 
   const apiTreeData = useMemo(() => {
-    interface TreeNode {
-      title: React.ReactNode
-      key: number
-      children?: TreeNode[]
-    }
-    const build = (items: RbacApi[]): TreeNode[] =>
+    const build = (items: RbacApi[]): MenuTreeNode[] =>
       items.map((item) => ({
         title: (
           <span>

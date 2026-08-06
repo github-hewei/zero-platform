@@ -8,6 +8,7 @@ import type {
   RbacRole,
   RbacMenu,
   RbacUser,
+  MenuSyncItem,
 } from '@/types'
 
 export async function getStoreList(
@@ -48,15 +49,18 @@ export async function getApiList() {
 }
 
 export async function createApi(data: Partial<RbacApi>) {
-  await http.post('/rbac/api/create', data)
+  const res = await http.post<CommonResponse>('/rbac/api/create', data)
+  return res.data
 }
 
 export async function updateApi(data: Partial<RbacApi> & { id: number }) {
-  await http.post('/rbac/api/update', data)
+  const res = await http.post<CommonResponse>('/rbac/api/update', data)
+  return res.data
 }
 
 export async function deleteApi(id: number) {
-  await http.post('/rbac/api/delete', { id })
+  const res = await http.post<CommonResponse>('/rbac/api/delete', { id })
+  return res.data
 }
 
 export async function getRoleList(
@@ -93,6 +97,41 @@ export async function setRoleMenus(roleId: number, menuIds: number[], storeId: n
 export async function getMenuList() {
   const res = await http.post<CommonResponse<RbacMenu[]>>('/rbac/menu/list', {})
   return res.data.data || []
+}
+
+export async function createMenu(data: Partial<RbacMenu>) {
+  const res = await http.post<CommonResponse>('/rbac/menu/create', data)
+  return res.data
+}
+
+export async function updateMenu(data: Partial<RbacMenu> & { id: number }) {
+  const res = await http.post<CommonResponse>('/rbac/menu/update', data)
+  return res.data
+}
+
+export async function deleteMenu(id: number) {
+  const res = await http.post<CommonResponse>('/rbac/menu/delete', { id })
+  return res.data
+}
+
+export async function syncMenu(data: MenuSyncItem[]) {
+  const res = await http.post<CommonResponse>('/rbac/menu/sync', data)
+  return res.data
+}
+
+export async function getMenuApis(menuId: number) {
+  const res = await http.post<CommonResponse<{ list: RbacApi[] }>>('/rbac/menu/api/list', {
+    menu_id: menuId,
+  })
+  return res.data.data.list || []
+}
+
+export async function saveMenuApis(menuId: number, apiIds: number[]) {
+  const res = await http.post<CommonResponse>('/rbac/menu/api/save', {
+    menu_id: menuId,
+    api_ids: apiIds,
+  })
+  return res.data
 }
 
 export async function getRbacUserList(

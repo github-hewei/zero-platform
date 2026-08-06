@@ -1,5 +1,5 @@
 import http from './http'
-import type { CommonResponse, PaginatedData, SettingDefault } from '@/types'
+import type { CommonResponse, PaginatedData, SettingDefault, FormGroup } from '@/types'
 
 export async function getSettingDefaultList(params: {
   page: number
@@ -29,6 +29,6 @@ export async function deleteSettingDefault(id: number) {
 }
 
 export async function getFormConfigs(params?: { only_platform?: boolean }) {
-  const res = await http.post<CommonResponse>('/setting/form-configs', params || {})
-  return res.data
+  const res = await http.post<CommonResponse<FormGroup[]>>('/setting/form-configs', params || {})
+  return res.data.data || []
 }

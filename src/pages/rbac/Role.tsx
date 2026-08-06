@@ -31,13 +31,7 @@ import {
   getStoreList,
   getMenuList,
 } from '@/services/rbac'
-import type { RbacRole, RbacStore, RbacMenu } from '@/types'
-
-interface MenuTreeNode {
-  title: string
-  key: number
-  children?: MenuTreeNode[]
-}
+import type { RbacRole, RbacStore, RbacMenu, MenuTreeNode } from '@/types'
 
 export default function RolePage() {
   const [loading, setLoading] = useState(false)
