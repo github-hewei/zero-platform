@@ -55,5 +55,9 @@ export default function AppRoutes() {
     return createBrowserRouter(filterRoutes(routeConfig, allowedPaths))
   }, [token, allowedPaths])
 
-  return <RouterProvider router={router} />
+  // 登录态/权限变化会重建 router 实例；key 强制 RouterProvider 以新实例完整重挂载，
+  // 否则 react-router 会沿用旧 router 的 state.matches，渲染错误路由树导致页面空白
+  const routerKey = `${token ? 'authed' : 'guest'}-${allowedPaths.length}`
+
+  return <RouterProvider key={routerKey} router={router} />
 }
