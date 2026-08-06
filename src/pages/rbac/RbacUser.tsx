@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Table,
   Button,
@@ -12,6 +12,7 @@ import {
   Dropdown,
   Tag,
   App,
+  Spin,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { MenuProps } from 'antd'
@@ -48,11 +49,14 @@ export default function RbacUserPage() {
   const [roleOpen, setRoleOpen] = useState(false)
   const [roleTarget, setRoleTarget] = useState<RbacUser | null>(null)
   const [roleList, setRoleList] = useState<RbacRole[]>([])
+  const [roleLoading, setRoleLoading] = useState(false)
   const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const roleReqSeq = useRef(0)
   const [form] = Form.useForm()
   const [searchForm] = Form.useForm()
   const { message, modal } = App.useApp()
-  const hasAction = usePermissionStore((s) => s.hasAction)
+  const allowedActions = usePermissionStore((s) => s.allowedActions)
 
   const fetchData = useCallback(
     async (page?: number, limit?: number) => {
@@ -86,10 +90,10 @@ export default function RbacUserPage() {
     try {
       const res = await getStoreList({ page: 1, limit: 1000, is_recycle: 0 })
       setStores(res?.list || [])
-    } catch {
-      /* ignore */
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '加载企业列表失败')
     }
-  }, [])
+  }, [message])
 
   useEffect(() => {
     fetchData()
@@ -131,7 +135,8 @@ export default function RbacUserPage() {
 
   const handleModalOk = async () => {
     const values = await form.validateFields().catch(() => null)
-    if (!values) return
+    if (!values || submitting) return
+    setSubmitting(true)
     try {
       if (editing) {
         const r = await updateRbacUser({ id: editing.id, ...values })
@@ -144,6 +149,8 @@ export default function RbacUserPage() {
       fetchData()
     } catch (err) {
       message.error(err instanceof Error ? err.message : '操作失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -158,7 +165,11 @@ export default function RbacUserPage() {
         try {
           const r = await deleteRbacUser(record.id, record.store_id)
           message.success(r.message || '删除成功')
-          fetchData()
+          if (data.length === 1 && pagination.page > 1) {
+            fetchData(pagination.page - 1)
+          } else {
+            fetchData()
+          }
         } catch (err) {
           message.error(err instanceof Error ? err.message : '删除失败')
         }
@@ -184,19 +195,26 @@ export default function RbacUserPage() {
   }
 
   const handleManageRole = async (record: RbacUser) => {
+    const seq = ++roleReqSeq.current
     setRoleTarget(record)
     setRoleOpen(true)
+    setRoleLoading(true)
     try {
       const roles = await getRoleList({ store_id: record.store_id, page: 1, limit: 100 })
+      if (seq !== roleReqSeq.current) return
       setRoleList(roles?.list || [])
       setSelectedRoleIds(record.rbac_user_role?.map((r) => r.role_id) || [])
     } catch (err) {
+      if (seq !== roleReqSeq.current) return
       message.error(err instanceof Error ? err.message : '加载角色失败')
+    } finally {
+      if (seq === roleReqSeq.current) setRoleLoading(false)
     }
   }
 
   const handleRoleSave = async () => {
-    if (!roleTarget) return
+    if (!roleTarget || submitting) return
+    setSubmitting(true)
     try {
       const r = await setRbacUserRoles(roleTarget.id, selectedRoleIds, roleTarget.store_id)
       message.success(r.message || '保存成功')
@@ -204,12 +222,14 @@ export default function RbacUserPage() {
       fetchData()
     } catch (err) {
       message.error(err instanceof Error ? err.message : '保存失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const rowActions = (record: RbacUser): MenuProps['items'] => {
     const items: MenuProps['items'] = []
-    if (hasAction('RbacUser:roles')) {
+    if (allowedActions.includes('RbacUser:roles')) {
       items.push({
         key: 'roles',
         icon: <KeyOutlined />,
@@ -217,7 +237,7 @@ export default function RbacUserPage() {
         onClick: () => handleManageRole(record),
       })
     }
-    if (hasAction('RbacUser:resetpassword')) {
+    if (allowedActions.includes('RbacUser:resetpassword')) {
       items.push({
         key: 'reset',
         icon: <LockOutlined />,
@@ -225,7 +245,7 @@ export default function RbacUserPage() {
         onClick: () => handleResetPassword(record),
       })
     }
-    if (hasAction('RbacUser:delete')) {
+    if (allowedActions.includes('RbacUser:delete')) {
       items.push({ type: 'divider' as const })
       items.push({
         key: 'delete',
@@ -280,9 +300,9 @@ export default function RbacUserPage() {
               编辑
             </Button>
           </Permission>
-          {hasAction('RbacUser:roles') ||
-          hasAction('RbacUser:resetpassword') ||
-          hasAction('RbacUser:delete') ? (
+          {allowedActions.includes('RbacUser:roles') ||
+          allowedActions.includes('RbacUser:resetpassword') ||
+          allowedActions.includes('RbacUser:delete') ? (
             <Dropdown menu={{ items: rowActions(record) }} trigger={['hover']}>
               <Button type="link" size="small">
                 更多
@@ -376,6 +396,7 @@ export default function RbacUserPage() {
         open={modalOpen}
         onOk={handleModalOk}
         onCancel={() => setModalOpen(false)}
+        confirmLoading={submitting}
         destroyOnHidden
         width={480}
       >
@@ -436,18 +457,25 @@ export default function RbacUserPage() {
         open={roleOpen}
         onOk={handleRoleSave}
         onCancel={() => setRoleOpen(false)}
+        confirmLoading={submitting}
         destroyOnHidden
         width={400}
       >
-        <Select
-          mode="multiple"
-          value={selectedRoleIds}
-          onChange={(vals) => setSelectedRoleIds(vals as number[])}
-          placeholder="请选择角色"
-          style={{ width: '100%', marginTop: 16 }}
-          options={roleList.map((r) => ({ value: r.id, label: r.role_name }))}
-        />
-        {roleList.length === 0 && (
+        {roleLoading ? (
+          <div style={{ textAlign: 'center', padding: 32 }}>
+            <Spin />
+          </div>
+        ) : (
+          <Select
+            mode="multiple"
+            value={selectedRoleIds}
+            onChange={(vals) => setSelectedRoleIds(vals as number[])}
+            placeholder="请选择角色"
+            style={{ width: '100%', marginTop: 16 }}
+            options={roleList.map((r) => ({ value: r.id, label: r.role_name }))}
+          />
+        )}
+        {!roleLoading && roleList.length === 0 && (
           <div style={{ color: '#94A3B8', padding: 8, textAlign: 'center' }}>该企业暂无角色</div>
         )}
       </Modal>

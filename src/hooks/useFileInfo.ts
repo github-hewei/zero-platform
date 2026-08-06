@@ -38,23 +38,37 @@ export function useFileInfo(id: number | undefined) {
     if (!pending.has(id)) {
       pending.set(
         id,
-        getFileDetail(id).then((data) => {
-          cache.set(data.id, data)
-          pending.delete(id)
-          return data
-        }),
+        getFileDetail(id)
+          .then((data) => {
+            cache.set(data.id, data)
+            return data
+          })
+          .finally(() => {
+            pending.delete(id)
+          })
+          .catch(() => {
+            throw new Error(`File info load failed: ${id}`)
+          }),
       )
     }
 
     const version = ++versionRef.current
     setLoading(true)
 
-    pending.get(id)!.then((data) => {
-      if (version === versionRef.current) {
-        setFile(data)
-        setLoading(false)
-      }
-    })
+    pending.get(id)!.then(
+      (data) => {
+        if (version === versionRef.current) {
+          setFile(data)
+          setLoading(false)
+        }
+      },
+      () => {
+        if (version === versionRef.current) {
+          setFile(null)
+          setLoading(false)
+        }
+      },
+    )
   }, [id])
 
   const url = file ? fileUrl(file) : ''

@@ -158,7 +158,15 @@ export default function DashboardPage() {
   }, [isDark])
 
   const metrics = useMemo(() => {
-    if (!stats) return []
+    const fallback = [
+      { label: '企业总数', value: '—', accent: false },
+      { label: '租户用户', value: '—', accent: false },
+      { label: '文件总数', value: '—', accent: false },
+      { label: '存储占用', value: '—', accent: false },
+      { label: '本月新增企业', value: '—', accent: true },
+      { label: '本月新增用户', value: '—', accent: true },
+    ]
+    if (!stats) return fallback
     const { overview } = stats
     return [
       { label: '企业总数', value: overview.store_total.toLocaleString(), accent: false },
@@ -194,7 +202,7 @@ export default function DashboardPage() {
           <div className="metric-strip">
             {metrics.map((m) => (
               <div className={`metric-card${m.accent ? ' accent' : ''}`} key={m.label}>
-                <div className="metric-value">{loading ? '—' : m.value}</div>
+                <div className="metric-value">{m.value}</div>
                 <div className="metric-label">{m.label}</div>
               </div>
             ))}

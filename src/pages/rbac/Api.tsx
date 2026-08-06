@@ -11,6 +11,7 @@ export default function ApiPage() {
   const [data, setData] = useState<RbacApi[]>([])
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<RbacApi | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm()
   const { message, modal } = App.useApp()
 
@@ -87,19 +88,22 @@ export default function ApiPage() {
 
   const handleModalOk = async () => {
     const values = await form.validateFields().catch(() => null)
-    if (!values) return
+    if (!values || submitting) return
+    setSubmitting(true)
     try {
       if (editing) {
-        await updateApi({ id: editing.id, ...values })
-        message.success('更新成功')
+        const r = await updateApi({ id: editing.id, ...values })
+        message.success(r.message || '更新成功')
       } else {
-        await createApi(values)
-        message.success('创建成功')
+        const r = await createApi(values)
+        message.success(r.message || '创建成功')
       }
       setModalOpen(false)
       fetchData()
     } catch (err) {
       message.error(err instanceof Error ? err.message : '操作失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -113,8 +117,8 @@ export default function ApiPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteApi(record.id)
-          message.success('删除成功')
+          const r = await deleteApi(record.id)
+          message.success(r.message || '删除成功')
           fetchData()
         } catch (err) {
           message.error(err instanceof Error ? err.message : '删除失败')
@@ -122,6 +126,46 @@ export default function ApiPage() {
       },
     })
   }
+
+  const disabledApiIds = useMemo(() => {
+    const set = new Set<number>()
+    if (!editing) return set
+    const walk = (items: RbacApi[]) => {
+      for (const item of items) {
+        set.add(item.id)
+        if (item.children?.length) walk(item.children)
+      }
+    }
+    const find = (items: RbacApi[]): boolean => {
+      for (const item of items) {
+        if (item.id === editing.id) {
+          walk([item])
+          return true
+        }
+        if (item.children?.length && find(item.children)) return true
+      }
+      return false
+    }
+    find(data)
+    return set
+  }, [editing, data])
+
+  const apiTreeData = useMemo(() => {
+    interface TreeNode {
+      title: string
+      value: number
+      disabled?: boolean
+      children?: TreeNode[]
+    }
+    const build = (items: RbacApi[]): TreeNode[] =>
+      items.map((item) => ({
+        title: item.name,
+        value: item.id,
+        disabled: disabledApiIds.has(item.id),
+        children: item.children?.length ? build(item.children) : undefined,
+      }))
+    return [{ title: '顶级（无父级）', value: 0, children: build(data) }]
+  }, [data, disabledApiIds])
 
   const columns: ColumnsType<RbacApi> = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 100 },
@@ -199,6 +243,7 @@ export default function ApiPage() {
         open={modalOpen}
         onOk={handleModalOk}
         onCancel={() => setModalOpen(false)}
+        confirmLoading={submitting}
         destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
@@ -207,17 +252,7 @@ export default function ApiPage() {
               placeholder="不选则为顶级接口"
               allowClear
               treeDefaultExpandAll
-              treeData={[
-                {
-                  title: '顶级（无父级）',
-                  value: 0,
-                  children: data.map((item) => ({
-                    title: item.name,
-                    value: item.id,
-                    children: item.children?.map((c) => ({ title: c.name, value: c.id })),
-                  })),
-                },
-              ]}
+              treeData={apiTreeData}
             />
           </Form.Item>
           <Form.Item

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Table, Button, Input, Space, Card, Form, Modal, Select, Tag, App } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import {
@@ -37,12 +37,15 @@ export default function PlatformUserPage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20 })
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<PlatformUser | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [searchForm] = Form.useForm()
   const [form] = Form.useForm()
   const { message, modal } = App.useApp()
+  const reqSeq = useRef(0)
 
   const fetchData = useCallback(
     async (page?: number, limit?: number) => {
+      const seq = ++reqSeq.current
       setLoading(true)
       try {
         const searchValues = searchForm.getFieldsValue()
@@ -52,6 +55,7 @@ export default function PlatformUserPage() {
           username: searchValues.username || undefined,
           real_name: searchValues.real_name || undefined,
         })
+        if (seq !== reqSeq.current) return
         setData(res?.list || [])
         setTotal(res?.total || 0)
         setPagination((prev) => {
@@ -60,9 +64,10 @@ export default function PlatformUserPage() {
           return { page: p, limit: l }
         })
       } catch (err) {
+        if (seq !== reqSeq.current) return
         message.error(err instanceof Error ? err.message : '加载失败')
       } finally {
-        setLoading(false)
+        if (seq === reqSeq.current) setLoading(false)
       }
     },
     [message, pagination.limit, pagination.page, searchForm],
@@ -109,19 +114,22 @@ export default function PlatformUserPage() {
 
   const handleModalOk = async () => {
     const values = await form.validateFields().catch(() => null)
-    if (!values) return
+    if (!values || submitting) return
+    setSubmitting(true)
     try {
       if (editing) {
-        await updatePlatformUser({ id: editing.id, ...values })
-        message.success('更新成功')
+        const r = await updatePlatformUser({ id: editing.id, ...values })
+        message.success(r.message || '更新成功')
       } else {
-        await createPlatformUser(values)
-        message.success('创建成功')
+        const r = await createPlatformUser(values)
+        message.success(r.message || '创建成功')
       }
       setModalOpen(false)
       fetchData()
     } catch (err) {
       message.error(err instanceof Error ? err.message : '操作失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -134,9 +142,13 @@ export default function PlatformUserPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deletePlatformUser(record.id)
-          message.success('删除成功')
-          fetchData()
+          const r = await deletePlatformUser(record.id)
+          message.success(r.message || '删除成功')
+          if (data.length === 1 && pagination.page > 1) {
+            fetchData(pagination.page - 1)
+          } else {
+            fetchData()
+          }
         } catch (err) {
           message.error(err instanceof Error ? err.message : '删除失败')
         }
@@ -152,8 +164,8 @@ export default function PlatformUserPage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await resetPlatformUserPassword(record.id)
-          message.success('密码已重置')
+          const r = await resetPlatformUserPassword(record.id)
+          message.success(r.message || '密码已重置')
         } catch (err) {
           message.error(err instanceof Error ? err.message : '操作失败')
         }
@@ -287,6 +299,7 @@ export default function PlatformUserPage() {
         open={modalOpen}
         onOk={handleModalOk}
         onCancel={() => setModalOpen(false)}
+        confirmLoading={submitting}
         destroyOnHidden
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>

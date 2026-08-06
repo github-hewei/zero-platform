@@ -1,9 +1,10 @@
-import { useState, useMemo, useCallback } from 'react'
-import { Upload, Image, Button, App } from 'antd'
+import { useState, useMemo, useCallback, useRef } from 'react'
+import { Upload, Image, Button, App, theme } from 'antd'
 import { PlusOutlined, DeleteOutlined, EyeOutlined } from '@ant-design/icons'
 import type { UploadFile, RcFile } from 'antd/es/upload/interface'
 import { useUpload } from '@/hooks/useUpload'
 import { useFileInfo, cacheFile } from '@/hooks/useFileInfo'
+import { COLORS } from '@/styles/constants'
 
 interface ImageUploadProps {
   value?: number
@@ -23,10 +24,12 @@ export default function ImageUpload({
   disabled = false,
 }: ImageUploadProps) {
   const { message } = App.useApp()
+  const { token } = theme.useToken()
   const { upload, uploading, progress } = useUpload()
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState('')
   const { url, loading: loadingFile } = useFileInfo(value)
+  const uploadSeq = useRef(0)
 
   const fileList: UploadFile[] = useMemo(() => {
     if (value === undefined || value <= 0) return []
@@ -38,6 +41,7 @@ export default function ImageUpload({
   const handleChange = useCallback(
     async (info: { file: UploadFile }) => {
       const f = info.file as RcFile
+      const seq = ++uploadSeq.current
 
       if (f.size && f.size > maxSize) {
         message.error(`文件大小不能超过 ${(maxSize / 1024 / 1024).toFixed(0)}MB`)
@@ -46,6 +50,7 @@ export default function ImageUpload({
 
       try {
         const fileData = await upload(f)
+        if (seq !== uploadSeq.current) return
         cacheFile(fileData)
         onChange?.(fileData.id)
       } catch (err) {
@@ -56,6 +61,7 @@ export default function ImageUpload({
   )
 
   const handleRemove = () => {
+    uploadSeq.current++
     onChange?.(0)
   }
 
@@ -72,7 +78,7 @@ export default function ImageUpload({
         alignItems: 'center',
         justifyContent: 'center',
         height: '100%',
-        color: '#94A3B8',
+        color: token.colorTextSecondary,
       }}
     >
       {uploading ? (
@@ -82,8 +88,8 @@ export default function ImageUpload({
               width: 48,
               height: 48,
               borderRadius: '50%',
-              border: '3px solid #E2E8F0',
-              borderTopColor: '#F97316',
+              border: `3px solid ${token.colorBorderSecondary}`,
+              borderTopColor: COLORS.primary,
               animation: 'image-upload-spin 0.8s linear infinite',
               margin: '0 auto 8px',
             }}
@@ -117,7 +123,7 @@ export default function ImageUpload({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#F8F9FA',
+            background: token.colorFillTertiary,
           }}
         >
           <div
@@ -125,8 +131,8 @@ export default function ImageUpload({
               width: 32,
               height: 32,
               borderRadius: '50%',
-              border: '2px solid #E2E8F0',
-              borderTopColor: '#F97316',
+              border: `2px solid ${token.colorBorderSecondary}`,
+              borderTopColor: COLORS.primary,
               animation: 'image-upload-spin 0.8s linear infinite',
             }}
           />
@@ -145,8 +151,8 @@ export default function ImageUpload({
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: '#F8F9FA',
-            color: '#94A3B8',
+            background: token.colorFillTertiary,
+            color: token.colorTextSecondary,
             fontSize: 12,
           }}
         >
@@ -192,6 +198,7 @@ export default function ImageUpload({
             type="text"
             size="small"
             icon={<DeleteOutlined style={{ color: '#fff', fontSize: 16 }} />}
+            disabled={uploading}
             onClick={(e) => {
               e.stopPropagation()
               handleRemove()

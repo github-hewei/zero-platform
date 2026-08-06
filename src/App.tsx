@@ -4,12 +4,17 @@ import zhCN from 'antd/locale/zh_CN'
 import { darkTheme, lightTheme } from '@/styles/theme'
 import { setAuthProvider } from '@/services/http'
 import { useAuthStore, useThemeStore } from '@/stores'
+import { COLORS } from '@/styles/constants'
 import ErrorBoundary from '@/components/ErrorBoundary'
 import AppRoutes from '@/router/AppRoutes'
 
 export default function App() {
   const mode = useThemeStore((s) => s.mode)
   const themeConfig = mode === 'dark' ? darkTheme : lightTheme
+
+  useEffect(() => {
+    document.body.style.background = mode === 'dark' ? COLORS.dark.bg : COLORS.light.bg
+  }, [mode])
 
   useEffect(() => {
     setAuthProvider({

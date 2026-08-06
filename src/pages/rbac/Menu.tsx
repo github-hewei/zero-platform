@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Table,
   Button,
@@ -27,6 +27,7 @@ import {
   UploadOutlined,
 } from '@ant-design/icons'
 import Permission from '@/components/Permission'
+import { usePermissionStore } from '@/stores'
 import {
   getMenuList,
   createMenu,
@@ -55,6 +56,8 @@ export default function MenuPage() {
   const [apiLoading, setApiLoading] = useState(false)
   const [allApis, setAllApis] = useState<RbacApi[]>([])
   const [selectedApiIds, setSelectedApiIds] = useState<number[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const apiReqSeq = useRef(0)
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -158,34 +161,41 @@ export default function MenuPage() {
   }
 
   const handleManageApi = async (record: RbacMenu) => {
+    const seq = ++apiReqSeq.current
     setApiTarget(record)
     setApiOpen(true)
     setApiLoading(true)
     try {
       const [all, bound] = await Promise.all([getApiList(), getMenuApis(record.id)])
+      if (seq !== apiReqSeq.current) return
       setAllApis(all)
       setSelectedApiIds(bound.map((a) => a.id))
     } catch (err) {
+      if (seq !== apiReqSeq.current) return
       message.error(err instanceof Error ? err.message : '加载接口权限失败')
     } finally {
-      setApiLoading(false)
+      if (seq === apiReqSeq.current) setApiLoading(false)
     }
   }
 
   const handleApiSave = async () => {
-    if (!apiTarget) return
+    if (!apiTarget || submitting) return
+    setSubmitting(true)
     try {
       const r = await saveMenuApis(apiTarget.id, selectedApiIds)
       message.success(r.message || '保存成功')
       setApiOpen(false)
     } catch (err) {
       message.error(err instanceof Error ? err.message : '保存失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleMenuOk = async () => {
     const values = await menuForm.validateFields().catch(() => null)
-    if (!values) return
+    if (!values || submitting) return
+    setSubmitting(true)
     try {
       const params = { ...values, type: 10, is_page: 1 }
       if (editing) {
@@ -199,12 +209,15 @@ export default function MenuPage() {
       fetchData()
     } catch (err) {
       message.error(err instanceof Error ? err.message : '操作失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
   const handleActionOk = async () => {
     const values = await actionForm.validateFields().catch(() => null)
-    if (!values) return
+    if (!values || submitting) return
+    setSubmitting(true)
     try {
       const params = { ...values, type: 20, is_page: 0, path: '-' }
       if (editing) {
@@ -218,6 +231,8 @@ export default function MenuPage() {
       fetchData()
     } catch (err) {
       message.error(err instanceof Error ? err.message : '操作失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -245,7 +260,18 @@ export default function MenuPage() {
   const [importing, setImporting] = useState(false)
   const [importFile, setImportFile] = useState<File | null>(null)
   const [importPreview, setImportPreview] = useState<string | null>(null)
-  const [importData, setImportData] = useState<unknown>(null)
+  const [importData, setImportData] = useState<MenuImportItem[] | null>(null)
+
+  const allowedActions = usePermissionStore((s) => s.allowedActions)
+
+  const walkImportValid = (items: unknown[]): boolean =>
+    items.every((item) => {
+      if (typeof item !== 'object' || item === null) return false
+      const o = item as Record<string, unknown>
+      if (typeof o.path !== 'string' || typeof o.title !== 'string') return false
+      if (o.children === undefined) return true
+      return Array.isArray(o.children) && walkImportValid(o.children as unknown[])
+    })
 
   const handleFileSelect = async (file: File | null) => {
     setImportFile(file)
@@ -257,8 +283,8 @@ export default function MenuPage() {
     try {
       const text = await file.text()
       const json = JSON.parse(text)
-      if (!Array.isArray(json)) {
-        setImportPreview('JSON 格式错误：根节点应为数组')
+      if (!Array.isArray(json) || !walkImportValid(json)) {
+        setImportPreview('JSON 格式错误：根节点应为数组，每项需包含 path 和 title 字段')
         setImportData(null)
         return
       }
@@ -272,7 +298,7 @@ export default function MenuPage() {
         return n
       }
       setImportPreview(`检测到 ${countRoot} 个一级菜单，共 ${countAll(json)} 个节点`)
-      setImportData(json)
+      setImportData(json as MenuImportItem[])
     } catch {
       setImportPreview('文件解析失败，请检查 JSON 格式')
       setImportData(null)
@@ -295,7 +321,7 @@ export default function MenuPage() {
           children: item.children?.length ? convert(item.children, parentId) : undefined,
         }))
 
-      const res = await syncMenu(convert(importData as MenuImportItem[]))
+      const res = await syncMenu(convert(importData))
       message.success(res.message || '导入成功')
       setImportOpen(false)
       setImportFile(null)
@@ -335,51 +361,63 @@ export default function MenuPage() {
     return build(allApis)
   }, [allApis])
 
-  const rowMoreItems = (record: RbacMenu): MenuProps['items'] => [
-    {
-      key: 'add-action',
-      icon: <KeyOutlined />,
-      label: '添加操作权限',
-      onClick: () => handleAddAction(record),
-    },
-    {
+  const rowMoreItems = (record: RbacMenu): MenuProps['items'] => {
+    const items: MenuProps['items'] = []
+    if (allowedActions.includes('Menu:create')) {
+      items.push({
+        key: 'add-action',
+        icon: <KeyOutlined />,
+        label: '添加操作权限',
+        onClick: () => handleAddAction(record),
+      })
+    }
+    items.push({
       key: 'api',
       icon: <ApiOutlined />,
       label: '管理接口权限',
       onClick: () => handleManageApi(record),
-    },
-    { type: 'divider' as const },
-    {
-      key: 'delete',
-      icon: <DeleteOutlined />,
-      label: '删除菜单',
-      danger: true,
-      onClick: () => handleDelete(record),
-    },
-  ]
+    })
+    if (allowedActions.includes('Menu:delete')) {
+      items.push({ type: 'divider' as const })
+      items.push({
+        key: 'delete',
+        icon: <DeleteOutlined />,
+        label: '删除菜单',
+        danger: true,
+        onClick: () => handleDelete(record),
+      })
+    }
+    return items
+  }
 
-  const actionItems = (record: RbacMenu): MenuProps['items'] => [
-    {
-      key: 'edit-action',
-      icon: <EditOutlined />,
-      label: '编辑操作权限',
-      onClick: () => handleEditAction(record),
-    },
-    {
+  const actionItems = (record: RbacMenu): MenuProps['items'] => {
+    const items: MenuProps['items'] = []
+    if (allowedActions.includes('Menu:update')) {
+      items.push({
+        key: 'edit-action',
+        icon: <EditOutlined />,
+        label: '编辑操作权限',
+        onClick: () => handleEditAction(record),
+      })
+    }
+    items.push({
       key: 'api-action',
       icon: <ApiOutlined />,
       label: '管理接口权限',
       onClick: () => handleManageApi(record),
-    },
-    { type: 'divider' as const },
-    {
-      key: 'delete-action',
-      icon: <DeleteOutlined />,
-      label: '删除',
-      danger: true,
-      onClick: () => handleDelete(record),
-    },
-  ]
+    })
+    if (allowedActions.includes('Menu:delete')) {
+      items.push({ type: 'divider' as const })
+      items.push({
+        key: 'delete-action',
+        icon: <DeleteOutlined />,
+        label: '删除',
+        danger: true,
+        onClick: () => handleDelete(record),
+      })
+    }
+    return items
+  }
 
   const columns: ColumnsType<RbacMenu> = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 160 },
@@ -415,9 +453,11 @@ export default function MenuPage() {
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
-          <Button type="link" size="small" onClick={() => handleEditMenu(record)}>
-            编辑
-          </Button>
+          <Permission moduleKey="Menu" actionMark="update">
+            <Button type="link" size="small" onClick={() => handleEditMenu(record)}>
+              编辑
+            </Button>
+          </Permission>
           <Dropdown menu={{ items: rowMoreItems(record) }} trigger={['hover']}>
             <Button type="link" size="small">
               更多
@@ -439,9 +479,11 @@ export default function MenuPage() {
                 新增菜单
               </Button>
             </Permission>
-            <Button icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
-              导入
-            </Button>
+            <Permission moduleKey="Menu" actionMark="create">
+              <Button icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
+                导入
+              </Button>
+            </Permission>
             <Button icon={<ReloadOutlined />} onClick={fetchData}>
               刷新
             </Button>
@@ -470,6 +512,7 @@ export default function MenuPage() {
         open={menuOpen}
         onOk={handleMenuOk}
         onCancel={() => setMenuOpen(false)}
+        confirmLoading={submitting}
         destroyOnHidden
       >
         <Form form={menuForm} layout="vertical" style={{ marginTop: 16 }}>
@@ -505,6 +548,7 @@ export default function MenuPage() {
         open={actionOpen}
         onOk={handleActionOk}
         onCancel={() => setActionOpen(false)}
+        confirmLoading={submitting}
         destroyOnHidden
       >
         <Form form={actionForm} layout="vertical" style={{ marginTop: 16 }}>
@@ -540,6 +584,7 @@ export default function MenuPage() {
         onOk={handleApiSave}
         onCancel={() => setApiOpen(false)}
         width={600}
+        confirmLoading={submitting}
         destroyOnHidden
       >
         {apiLoading ? (
@@ -551,7 +596,9 @@ export default function MenuPage() {
             checkable
             defaultExpandAll
             checkedKeys={selectedApiIds}
-            onCheck={(keys) => setSelectedApiIds(keys as number[])}
+            onCheck={(keys, e) =>
+              setSelectedApiIds((keys as number[]).filter((k) => !e.halfCheckedKeys?.includes(k)))
+            }
             treeData={apiTreeData}
           />
         )}

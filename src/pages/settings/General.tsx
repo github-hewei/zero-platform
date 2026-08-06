@@ -9,7 +9,7 @@ import {
 } from '@/services/setting'
 import ImageUpload from '@/components/ImageUpload'
 import FileUpload from '@/components/FileUpload'
-import type { SettingDefault, FormField, FormGroup } from '@/types'
+import type { FormField, FormGroup } from '@/types'
 
 export default function GeneralSettingsPage() {
   const [groups, setGroups] = useState<FormGroup[]>([])
@@ -27,7 +27,7 @@ export default function GeneralSettingsPage() {
         setGroups(configs)
         if (configs.length > 0) setActiveTab(configs[0].key)
 
-        const listRes = await getSettingDefaultList({ page: 1, limit: 100 })
+        const listRes = await getSettingDefaultList({ page: 1, limit: 500 })
         const ids: Record<string, number> = {}
         const savedValues: Record<string, unknown> = {}
 
@@ -58,6 +58,13 @@ export default function GeneralSettingsPage() {
   }, [message, form])
 
   const handleSave = async (group: FormGroup) => {
+    const names = group.fields.map((field) => `${group.key}.${field.key}`)
+    try {
+      await form.validateFields(names)
+    } catch {
+      return
+    }
+
     const fieldValues: Record<string, unknown> = {}
     for (const field of group.fields) {
       fieldValues[field.key] = form.getFieldValue(`${group.key}.${field.key}`)
@@ -79,8 +86,12 @@ export default function GeneralSettingsPage() {
           setting_key: group.key,
           setting_values: jsonValues,
         })
-        const fresh = await getSettingDefaultList({ page: 1, limit: 100 })
-        const newItem = (fresh?.list || []).find((s: SettingDefault) => s.setting_key === group.key)
+        const fresh = await getSettingDefaultList({
+          page: 1,
+          limit: 1,
+          setting_key: group.key,
+        })
+        const newItem = fresh?.list?.[0]
         if (newItem) {
           setSettingIds((prev) => ({ ...prev, [group.key]: newItem.id }))
         }

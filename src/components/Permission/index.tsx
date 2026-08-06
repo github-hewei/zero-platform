@@ -14,10 +14,10 @@ export default function Permission({
   children,
   fallback = null,
 }: PermissionProps) {
-  const hasAction = usePermissionStore((s) => s.hasAction)
+  const allowedActions = usePermissionStore((s) => s.allowedActions)
   const actionKey = `${moduleKey}:${actionMark}`
 
-  if (hasAction(actionKey)) {
+  if (allowedActions.includes(actionKey)) {
     return <>{children}</>
   }
 

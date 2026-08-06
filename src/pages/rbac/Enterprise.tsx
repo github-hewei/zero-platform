@@ -28,6 +28,7 @@ export default function EnterprisePage() {
   const [pagination, setPagination] = useState({ page: 1, limit: 20 })
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<RbacStore | null>(null)
+  const [submitting, setSubmitting] = useState(false)
   const [searchForm] = Form.useForm()
   const [form] = Form.useForm()
   const { message, modal } = App.useApp()
@@ -134,19 +135,22 @@ export default function EnterprisePage() {
 
   const handleModalOk = async () => {
     const values = await form.validateFields().catch(() => null)
-    if (!values) return
+    if (!values || submitting) return
+    setSubmitting(true)
     try {
       if (editing) {
-        await updateStore({ id: editing.id, ...values })
-        message.success('更新成功')
+        const r = await updateStore({ id: editing.id, ...values })
+        message.success(r.message || '更新成功')
       } else {
-        await createStore(values)
-        message.success('创建成功')
+        const r = await createStore(values)
+        message.success(r.message || '创建成功')
       }
       setModalOpen(false)
       fetchData()
     } catch (err) {
       message.error(err instanceof Error ? err.message : '操作失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -159,9 +163,13 @@ export default function EnterprisePage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await recycleStore(record.id)
-          message.success('已回收')
-          fetchData()
+          const r = await recycleStore(record.id)
+          message.success(r.message || '已回收')
+          if (data.length === 1 && pagination.page > 1) {
+            fetchData(pagination.page - 1)
+          } else {
+            fetchData()
+          }
         } catch (err) {
           message.error(err instanceof Error ? err.message : '操作失败')
         }
@@ -177,9 +185,13 @@ export default function EnterprisePage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await restoreStore(record.id)
-          message.success('已恢复')
-          fetchRecycle(recyclePage.page, recyclePage.limit)
+          const r = await restoreStore(record.id)
+          message.success(r.message || '已恢复')
+          if (recycleData.length === 1 && recyclePage.page > 1) {
+            fetchRecycle(recyclePage.page - 1, recyclePage.limit)
+          } else {
+            fetchRecycle(recyclePage.page, recyclePage.limit)
+          }
         } catch (err) {
           message.error(err instanceof Error ? err.message : '操作失败')
         }
@@ -196,9 +208,13 @@ export default function EnterprisePage() {
       cancelText: '取消',
       onOk: async () => {
         try {
-          await deleteStore(record.id)
-          message.success('已删除')
-          fetchRecycle(recyclePage.page, recyclePage.limit)
+          const r = await deleteStore(record.id)
+          message.success(r.message || '已删除')
+          if (recycleData.length === 1 && recyclePage.page > 1) {
+            fetchRecycle(recyclePage.page - 1, recyclePage.limit)
+          } else {
+            fetchRecycle(recyclePage.page, recyclePage.limit)
+          }
         } catch (err) {
           message.error(err instanceof Error ? err.message : '删除失败')
         }
@@ -326,7 +342,7 @@ export default function EnterprisePage() {
               icon={<RestOutlined />}
               onClick={() => {
                 setRecycleOpen(true)
-                fetchRecycle(1, 20)
+                fetchRecycle(1, recyclePage.limit)
               }}
             >
               回收站
@@ -360,6 +376,7 @@ export default function EnterprisePage() {
         open={modalOpen}
         onOk={handleModalOk}
         onCancel={() => setModalOpen(false)}
+        confirmLoading={submitting}
         destroyOnHidden
         width={560}
       >
@@ -420,6 +437,7 @@ export default function EnterprisePage() {
             pageSize: recyclePage.limit,
             total: recycleTotal,
             showSizeChanger: true,
+            showQuickJumper: true,
             showTotal: (t) => `共 ${t} 条`,
             onChange: (page, limit) => fetchRecycle(page, limit),
           }}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
   Table,
   Button,
@@ -46,6 +46,8 @@ export default function RolePage() {
   const [menuData, setMenuData] = useState<RbacMenu[]>([])
   const [menuLoading, setMenuLoading] = useState(false)
   const [selectedMenuIds, setSelectedMenuIds] = useState<number[]>([])
+  const [submitting, setSubmitting] = useState(false)
+  const menuReqSeq = useRef(0)
   const [form] = Form.useForm()
   const [searchForm] = Form.useForm()
   const { message, modal } = App.useApp()
@@ -81,10 +83,10 @@ export default function RolePage() {
     try {
       const res = await getStoreList({ page: 1, limit: 1000, is_recycle: 0 })
       setStores(res?.list || [])
-    } catch {
-      /* ignore */
+    } catch (err) {
+      message.error(err instanceof Error ? err.message : '加载企业列表失败')
     }
-  }, [])
+  }, [message])
 
   useEffect(() => {
     fetchData()
@@ -125,7 +127,8 @@ export default function RolePage() {
 
   const handleModalOk = async () => {
     const values = await form.validateFields().catch(() => null)
-    if (!values) return
+    if (!values || submitting) return
+    setSubmitting(true)
     try {
       if (editing) {
         const r = await updateRole({ id: editing.id, ...values })
@@ -138,6 +141,8 @@ export default function RolePage() {
       fetchData()
     } catch (err) {
       message.error(err instanceof Error ? err.message : '操作失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -152,7 +157,11 @@ export default function RolePage() {
         try {
           const r = await deleteRole(record.id, record.store_id)
           message.success(r.message || '删除成功')
-          fetchData()
+          if (data.length === 1 && pagination.page > 1) {
+            fetchData(pagination.page - 1)
+          } else {
+            fetchData()
+          }
         } catch (err) {
           message.error(err instanceof Error ? err.message : '删除失败')
         }
@@ -161,11 +170,13 @@ export default function RolePage() {
   }
 
   const handleManageMenu = async (record: RbacRole) => {
+    const seq = ++menuReqSeq.current
     setMenuTarget(record)
     setMenuOpen(true)
     setMenuLoading(true)
     try {
       const menus = await getMenuList()
+      if (seq !== menuReqSeq.current) return
       const clean = (items: RbacMenu[]): RbacMenu[] =>
         items.map((item) => ({
           ...item,
@@ -174,20 +185,24 @@ export default function RolePage() {
       setMenuData(clean(menus))
       setSelectedMenuIds(record.rbac_role_menu?.map((m) => m.menu_id) || [])
     } catch (err) {
+      if (seq !== menuReqSeq.current) return
       message.error(err instanceof Error ? err.message : '加载菜单失败')
     } finally {
-      setMenuLoading(false)
+      if (seq === menuReqSeq.current) setMenuLoading(false)
     }
   }
 
   const handleMenuSave = async () => {
-    if (!menuTarget) return
+    if (!menuTarget || submitting) return
+    setSubmitting(true)
     try {
       const r = await setRoleMenus(menuTarget.id, selectedMenuIds, menuTarget.store_id)
       message.success(r.message || '保存成功')
       setMenuOpen(false)
     } catch (err) {
       message.error(err instanceof Error ? err.message : '保存失败')
+    } finally {
+      setSubmitting(false)
     }
   }
 
@@ -333,6 +348,7 @@ export default function RolePage() {
         open={modalOpen}
         onOk={handleModalOk}
         onCancel={() => setModalOpen(false)}
+        confirmLoading={submitting}
         destroyOnHidden
         width={480}
       >
@@ -369,6 +385,7 @@ export default function RolePage() {
         onOk={handleMenuSave}
         onCancel={() => setMenuOpen(false)}
         width={480}
+        confirmLoading={submitting}
         destroyOnHidden
       >
         {menuLoading ? (
@@ -380,7 +397,9 @@ export default function RolePage() {
             checkable
             defaultExpandAll
             checkedKeys={selectedMenuIds}
-            onCheck={(keys) => setSelectedMenuIds(keys as number[])}
+            onCheck={(keys, e) =>
+              setSelectedMenuIds((keys as number[]).filter((k) => !e.halfCheckedKeys?.includes(k)))
+            }
             treeData={menuTreeData}
           />
         )}
