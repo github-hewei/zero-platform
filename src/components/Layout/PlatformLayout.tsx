@@ -2,44 +2,19 @@ import { Suspense, useMemo, useState } from 'react'
 import { Outlet, useNavigate, useLocation } from 'react-router-dom'
 import { Menu, Dropdown, Avatar, Space, Spin, App, Button, Modal, Form, Input } from 'antd'
 import type { ItemType } from 'antd/es/menu/interface'
-import {
-  DashboardOutlined,
-  SafetyCertificateOutlined,
-  TeamOutlined,
-  SettingOutlined,
-  LogoutOutlined,
-  UserOutlined,
-  ApartmentOutlined,
-  SolutionOutlined,
-  MenuOutlined as MenuIcon,
-  ApiOutlined,
-  KeyOutlined,
-  SunOutlined,
-  MoonOutlined,
-} from '@ant-design/icons'
+import { LogoutOutlined, UserOutlined, SunOutlined, MoonOutlined } from '@ant-design/icons'
 import { useAuthStore, useThemeStore, usePermissionStore } from '@/stores'
 import { logout as logoutApi, changePassword } from '@/services/auth'
 import { COLORS, LAYOUT } from '@/styles/constants'
+import { navItems } from '@/router/menu'
+import type { NavItem } from '@/router/menu'
 
-const allTopNavItems: ItemType[] = [
-  { key: '/home', icon: <DashboardOutlined />, label: '仪表盘' },
-  { key: '/rbac', icon: <SafetyCertificateOutlined />, label: '权限管理' },
-  { key: '/settings', icon: <SettingOutlined />, label: '系统设置' },
-]
-
-const allSubMenus: Record<string, ItemType[]> = {
-  '/rbac': [
-    { key: '/rbac/enterprise', icon: <ApartmentOutlined />, label: '企业管理' },
-    { key: '/rbac/user', icon: <TeamOutlined />, label: '租户用户' },
-    { key: '/rbac/role', icon: <SolutionOutlined />, label: '角色管理' },
-    { key: '/rbac/menu', icon: <MenuIcon />, label: '菜单管理' },
-    { key: '/rbac/api', icon: <ApiOutlined />, label: '接口管理' },
-  ],
-  '/settings': [
-    { key: '/settings/general', icon: <SettingOutlined />, label: '默认系统设置' },
-    { key: '/settings/users', icon: <KeyOutlined />, label: '平台用户管理' },
-  ],
-}
+const toItemType = (item: NavItem): ItemType => ({
+  key: item.path,
+  label: item.title,
+  icon: item.icon,
+  children: item.children?.map(toItemType),
+})
 
 function resolveTopKey(pathname: string) {
   if (pathname === '/' || pathname.startsWith('/home')) return '/home'
@@ -64,23 +39,25 @@ export default function PlatformLayout() {
   const activeTopKey = resolveTopKey(pathname)
   const palette = isDark ? COLORS.dark : COLORS.light
 
-  const topNavItems = useMemo(() => {
-    return allTopNavItems.filter((item) => {
-      if (item?.key === '/home') return true
-      const children = allSubMenus[item?.key as string]
-      if (!children) return true
-      return children.some((child) => child?.key && allowedPaths.includes(child.key as string))
-    })
+  const topNavItems = useMemo<ItemType[]>(() => {
+    return navItems
+      .filter((item) => {
+        if (item.path === '/home') return true
+        if (!item.children?.length) return true
+        return item.children.some((child) => allowedPaths.includes(child.path))
+      })
+      .map(toItemType)
   }, [allowedPaths])
 
   const subMenus = useMemo(() => {
     const filtered: Record<string, ItemType[]> = {}
-    for (const [key, items] of Object.entries(allSubMenus)) {
-      const filteredItems = items.filter(
-        (item) => item?.key && allowedPaths.includes(item.key as string),
-      )
+    for (const item of navItems) {
+      if (!item.children?.length) continue
+      const filteredItems = item.children
+        .filter((child) => allowedPaths.includes(child.path))
+        .map(toItemType)
       if (filteredItems.length > 0) {
-        filtered[key] = filteredItems
+        filtered[item.path] = filteredItems
       }
     }
     return filtered

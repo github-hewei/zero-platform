@@ -132,7 +132,7 @@ const recentLogs = [
   { time: '13:20', text: '账号 operator_03 密码已被重置', type: 'operate' as const },
 ]
 
-export default function Dashboard() {
+export default function DashboardPage() {
   const isDark = useThemeStore((s) => s.mode === 'dark')
 
   const cardVars = useMemo(() => {

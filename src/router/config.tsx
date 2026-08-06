@@ -41,52 +41,42 @@ export const routeConfig: RouteObject[] = [
       {
         path: 'home',
         element: LazyLoad(() => import('@/pages/home')),
-        handle: { title: '仪表盘' },
       },
       {
         path: 'rbac',
-        handle: { title: '权限管理' },
         children: [
           {
             path: 'enterprise',
             element: LazyLoad(() => import('@/pages/rbac/Enterprise')),
-            handle: { title: '企业管理' },
           },
           {
             path: 'role',
             element: LazyLoad(() => import('@/pages/rbac/Role')),
-            handle: { title: '角色管理' },
           },
           {
             path: 'menu',
             element: LazyLoad(() => import('@/pages/rbac/Menu')),
-            handle: { title: '菜单管理' },
           },
           {
             path: 'api',
             element: LazyLoad(() => import('@/pages/rbac/Api')),
-            handle: { title: '接口管理' },
           },
           {
             path: 'user',
-            element: LazyLoad(() => import('@/pages/rbac/User')),
-            handle: { title: '租户用户' },
+            element: LazyLoad(() => import('@/pages/rbac/RbacUser')),
           },
         ],
       },
       {
         path: 'settings',
-        handle: { title: '系统设置' },
         children: [
           {
             path: 'general',
             element: LazyLoad(() => import('@/pages/settings/General')),
-            handle: { title: '默认系统设置' },
           },
           {
             path: 'users',
-            element: LazyLoad(() => import('@/pages/settings/Users')),
-            handle: { title: '平台用户管理' },
+            element: LazyLoad(() => import('@/pages/settings/PlatformUser')),
           },
         ],
       },

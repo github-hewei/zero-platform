@@ -1,20 +1,12 @@
 import type { RbacMenu } from '@/types'
+import { allPaths } from '@/router/menu'
 
 interface PermissionConfig {
   paths: string[]
   actions: string[]
 }
 
-const ALL_PATHS = [
-  '/home',
-  '/rbac/enterprise',
-  '/rbac/user',
-  '/rbac/role',
-  '/rbac/menu',
-  '/rbac/api',
-  '/settings/general',
-  '/settings/users',
-]
+const ALL_PATHS = allPaths
 
 const ALL_ACTIONS = [
   'PlatformUser:create',
