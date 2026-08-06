@@ -36,6 +36,11 @@ const ALL_ACTIONS = [
   'Role:update',
   'Role:delete',
   'Role:menus',
+  'RbacUser:create',
+  'RbacUser:update',
+  'RbacUser:delete',
+  'RbacUser:resetpassword',
+  'RbacUser:roles',
 ]
 
 const OPERATOR_ACTIONS = [

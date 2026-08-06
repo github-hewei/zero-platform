@@ -76,6 +76,14 @@ export interface RbacUser {
   store_id: number
   created_at: number
   updated_at: number
+  rbac_user_role?: Array<{
+    id: number
+    user_id: number
+    role_id: number
+    store_id: number
+    created_at: number
+    rbac_role: RbacRole
+  }>
 }
 
 export interface RbacMenu {
