@@ -1,16 +1,20 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { Button, Form, Input, App, Modal, Space } from 'antd'
-import { UserOutlined, LockOutlined, ReloadOutlined } from '@ant-design/icons'
+import { Button, Form, Input, App, Modal, Spin } from 'antd'
+import { UserOutlined, LockOutlined, ReloadOutlined, ClearOutlined } from '@ant-design/icons'
 import { useNavigate } from 'react-router-dom'
 import { useAuthStore, usePermissionStore } from '@/stores'
 import { login as loginApi, getCaptcha } from '@/services/auth'
 import { getPermissionsByRole } from '@/services/permissions'
 import type { CaptchaResponse } from '@/types'
 import { COLORS } from '@/styles/constants'
+import './index.css'
 
 interface ClickPoint {
   x: number
   y: number
+  left: string
+  top: string
+  index: number
 }
 
 export default function LoginPage() {
@@ -19,7 +23,6 @@ export default function LoginPage() {
   const [captchaData, setCaptchaData] = useState<CaptchaResponse | null>(null)
   const [captchaLoading, setCaptchaLoading] = useState(false)
   const [clickPoints, setClickPoints] = useState<ClickPoint[]>([])
-  const [clickDisplays, setClickDisplays] = useState<{ left: string; top: string }[]>([])
   const captchaImgRef = useRef<HTMLImageElement>(null)
 
   const navigate = useNavigate()
@@ -37,7 +40,6 @@ export default function LoginPage() {
   const fetchCaptcha = useCallback(async () => {
     setCaptchaLoading(true)
     setClickPoints([])
-    setClickDisplays([])
     try {
       const data = await getCaptcha()
       setCaptchaData(data)
@@ -58,28 +60,42 @@ export default function LoginPage() {
     fetchCaptcha()
   }, [form, fetchCaptcha])
 
-  const handleCaptchaClick = (e: React.MouseEvent<HTMLImageElement>) => {
+  const addCaptchaPoint = useCallback((clickX: number, clickY: number) => {
     const img = captchaImgRef.current
     if (!img) return
-
     const rect = img.getBoundingClientRect()
-    const clickX = e.clientX - rect.left
-    const clickY = e.clientY - rect.top
     const scaleX = img.naturalWidth / rect.width
     const scaleY = img.naturalHeight / rect.height
 
     setClickPoints((prev) => [
       ...prev,
-      { x: Math.round(clickX * scaleX), y: Math.round(clickY * scaleY) },
-    ])
-    setClickDisplays((prev) => [
-      ...prev,
       {
+        x: Math.round(clickX * scaleX),
+        y: Math.round(clickY * scaleY),
         left: `${(clickX / rect.width) * 100}%`,
         top: `${(clickY / rect.height) * 100}%`,
+        index: prev.length + 1,
       },
     ])
+  }, [])
+
+  const handleCaptchaClick = (e: React.MouseEvent<HTMLImageElement>) => {
+    const img = captchaImgRef.current
+    if (!img) return
+    const rect = img.getBoundingClientRect()
+    addCaptchaPoint(e.clientX - rect.left, e.clientY - rect.top)
   }
+
+  const handleCaptchaKeyDown = (e: React.KeyboardEvent<HTMLImageElement>) => {
+    if (e.key !== 'Enter' && e.key !== ' ') return
+    e.preventDefault()
+    const img = captchaImgRef.current
+    if (!img) return
+    const rect = img.getBoundingClientRect()
+    addCaptchaPoint(rect.width / 2, rect.height / 2)
+  }
+
+  const clearCaptchaPoints = useCallback(() => setClickPoints([]), [])
 
   const handleCaptchaConfirm = async () => {
     if (!captchaData) return
@@ -97,7 +113,7 @@ export default function LoginPage() {
         username: values.username,
         password: values.password,
         captcha_id: captchaData.captcha_id,
-        captcha_code: JSON.stringify(clickPoints),
+        captcha_code: JSON.stringify(clickPoints.map((p) => ({ x: p.x, y: p.y }))),
       })
 
       useAuthStore.getState().setAuth(result.token, result.user)
@@ -107,6 +123,8 @@ export default function LoginPage() {
       usePermissionStore.getState().setPermissions(perm.menus, perm.paths, perm.actions)
     } catch (err) {
       message.error(err instanceof Error ? err.message : '登录失败')
+      setCaptchaOpen(true)
+      fetchCaptcha()
     } finally {
       setLoading(false)
     }
@@ -264,81 +282,77 @@ export default function LoginPage() {
       </div>
 
       <Modal
-        title="安全验证"
         open={captchaOpen}
-        onOk={handleCaptchaConfirm}
         onCancel={() => setCaptchaOpen(false)}
-        okText="确认"
-        cancelText="取消"
-        width={400}
+        footer={null}
+        width={360}
+        centered
+        destroyOnHidden
+        styles={{ body: { padding: 0, borderRadius: 10 } }}
       >
-        <div style={{ textAlign: 'center', padding: '8px 0' }}>
+        <div className="captcha-modal">
+          <div className="captcha-eyebrow">SECURITY CHECK</div>
+
           {captchaLoading || !captchaData ? (
-            <div style={{ padding: 40, color: '#94A3B8' }}>加载中...</div>
+            <div className="captcha-loading">
+              <Spin />
+            </div>
           ) : (
             <>
-              <div
-                style={{
-                  position: 'relative',
-                  display: 'inline-block',
-                  cursor: 'pointer',
-                  border: '1px solid #E5E7EB',
-                  borderRadius: 4,
-                  overflow: 'hidden',
-                }}
-              >
+              <div className="captcha-image">
                 <img
                   ref={captchaImgRef}
                   src={captchaData.master_image}
                   alt="验证码"
                   onClick={handleCaptchaClick}
-                  style={{ display: 'block', width: 300, height: 200, objectFit: 'cover' }}
+                  onKeyDown={handleCaptchaKeyDown}
+                  tabIndex={0}
+                  role="button"
+                  aria-label="点击验证码图片选择文字，按回车在中心添加标记"
                   draggable={false}
                 />
-                {clickDisplays.map((dot, i) => (
-                  <div
-                    key={i}
-                    style={{
-                      position: 'absolute',
-                      left: dot.left,
-                      top: dot.top,
-                      width: 20,
-                      height: 20,
-                      borderRadius: '50%',
-                      background: 'rgba(249, 115, 22, 0.7)',
-                      border: '2px solid #F97316',
-                      transform: 'translate(-50%, -50%)',
-                      pointerEvents: 'none',
-                    }}
-                  />
+                {clickPoints.map((p) => (
+                  <span key={p.index} className="captcha-dot" style={{ left: p.left, top: p.top }}>
+                    {p.index}
+                  </span>
                 ))}
               </div>
-              <div style={{ marginTop: 12 }}>
-                <Space>
-                  <img
-                    src={captchaData.thumb_image}
-                    alt="参考图"
-                    style={{
-                      width: 160,
-                      height: 40,
-                      objectFit: 'cover',
-                      borderRadius: 2,
-                      border: '1px solid #E5E7EB',
-                    }}
+
+              <div className="captcha-toolbar">
+                <img className="captcha-thumb" src={captchaData.thumb_image} alt="参考图" />
+                <div className="captcha-tool-actions">
+                  <Button
+                    type="default"
+                    icon={<ClearOutlined />}
+                    onClick={clearCaptchaPoints}
+                    aria-label="清除已选点"
                   />
                   <Button
-                    icon={<ReloadOutlined />}
-                    size="small"
+                    type="default"
+                    icon={<ReloadOutlined spin={captchaLoading} />}
                     onClick={fetchCaptcha}
-                    loading={captchaLoading}
-                  >
-                    换一张
-                  </Button>
-                </Space>
+                    disabled={captchaLoading}
+                    aria-label="刷新验证码"
+                  />
+                </div>
               </div>
-              <p style={{ marginTop: 8, fontSize: 12, color: '#9CA3AF' }}>请依次点击图中文字</p>
             </>
           )}
+
+          <div className="captcha-footer">
+            <Button type="default" className="captcha-btn" onClick={() => setCaptchaOpen(false)}>
+              取消
+            </Button>
+            <Button
+              type="primary"
+              className="captcha-btn"
+              onClick={handleCaptchaConfirm}
+              loading={loading}
+              disabled={captchaLoading || !captchaData}
+            >
+              确认
+            </Button>
+          </div>
         </div>
       </Modal>
     </>
