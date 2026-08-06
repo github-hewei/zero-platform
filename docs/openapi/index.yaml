@@ -89,8 +89,6 @@ paths:
   /rbac/user/reset-password:
     $ref: './paths/rbac-user.yaml#/~1rbac~1user~1reset-password'
 
-  /setting/qiniu-token:
-    $ref: './paths/setting.yaml#/~1setting~1qiniu-token'
   /setting/default/list:
     $ref: './paths/setting.yaml#/~1setting~1default~1list'
   /setting/default/create:
@@ -99,6 +97,23 @@ paths:
     $ref: './paths/setting.yaml#/~1setting~1default~1update'
   /setting/default/delete:
     $ref: './paths/setting.yaml#/~1setting~1default~1delete'
+
+  /upload/group/list:
+    $ref: './paths/upload.yaml#/~1upload~1group~1list'
+  /upload/group/create:
+    $ref: './paths/upload.yaml#/~1upload~1group~1create'
+  /upload/group/update:
+    $ref: './paths/upload.yaml#/~1upload~1group~1update'
+  /upload/group/delete:
+    $ref: './paths/upload.yaml#/~1upload~1group~1delete'
+  /upload/file/list:
+    $ref: './paths/upload.yaml#/~1upload~1file~1list'
+  /upload/file/upload:
+    $ref: './paths/upload.yaml#/~1upload~1file~1upload'
+  /upload/file/delete:
+    $ref: './paths/upload.yaml#/~1upload~1file~1delete'
+  /upload/file/detail:
+    $ref: './paths/upload.yaml#/~1upload~1file~1detail'
 
 components:
   securitySchemes:

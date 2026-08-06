@@ -110,9 +110,19 @@ export interface RbacRole {
   role_name: string
   parent_id: number
   sort: number
+  is_super: number
   store_id: number
   created_at: number
   updated_at: number
+  rbac_role_menu?: Array<{
+    id: number
+    role_id: number
+    menu_id: number
+    store_id: number
+    created_at: number
+    updated_at: number
+    rbac_menu: RbacMenu
+  }>
 }
 
 export interface SettingDefault {

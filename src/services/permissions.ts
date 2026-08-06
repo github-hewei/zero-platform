@@ -32,6 +32,10 @@ const ALL_ACTIONS = [
   'Menu:create',
   'Menu:update',
   'Menu:delete',
+  'Role:create',
+  'Role:update',
+  'Role:delete',
+  'Role:menus',
 ]
 
 const OPERATOR_ACTIONS = [
