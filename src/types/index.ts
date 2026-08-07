@@ -206,23 +206,32 @@ export interface MenuTreeNode {
   children?: MenuTreeNode[]
 }
 
+export interface MenuImportAction {
+  title: string
+  action_mark: string
+}
+
 export interface MenuImportItem {
   path: string
   title: string
-  module_key: string
+  module_key?: string
+  meta?: { icon?: string; sort?: number; hidden?: boolean }
   children?: MenuImportItem[]
-  meta?: { sort?: number }
+  actions?: MenuImportAction[]
+}
+
+export interface MenuSyncAction {
+  name: string
+  action_mark: string
 }
 
 export interface MenuSyncItem {
   name: string
-  type: number
   path: string
-  is_page: number
-  module_key: string
-  sort: number
-  parent_id: number
+  module_key?: string
+  sort?: number
   children?: MenuSyncItem[]
+  actions?: MenuSyncAction[]
 }
 
 export interface DailyCount {

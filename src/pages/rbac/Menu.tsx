@@ -264,14 +264,52 @@ export default function MenuPage() {
 
   const allowedActions = usePermissionStore((s) => s.allowedActions)
 
-  const walkImportValid = (items: unknown[]): boolean =>
-    items.every((item) => {
-      if (typeof item !== 'object' || item === null) return false
+  const validateImport = (items: unknown[], seenPaths: Set<string>): string | null => {
+    for (let i = 0; i < items.length; i++) {
+      const label = `第 ${i + 1} 项`
+      const item = items[i]
+      if (typeof item !== 'object' || item === null) return `${label}：不是有效对象`
       const o = item as Record<string, unknown>
-      if (typeof o.path !== 'string' || typeof o.title !== 'string') return false
-      if (o.children === undefined) return true
-      return Array.isArray(o.children) && walkImportValid(o.children as unknown[])
-    })
+
+      if (typeof o.path !== 'string' || o.path.trim() === '' || !o.path.startsWith('/')) {
+        return `${label}：path 必须为以 / 开头的非空字符串`
+      }
+      if (seenPaths.has(o.path)) return `${label}：path「${o.path}」与其他菜单重复`
+      seenPaths.add(o.path)
+
+      if (typeof o.title !== 'string' || o.title.trim() === '') {
+        return `${label}：title 不能为空`
+      }
+
+      if (o.actions !== undefined) {
+        if (!Array.isArray(o.actions)) return `${label}：actions 必须是数组`
+        const seenMarks = new Set<string>()
+        for (let j = 0; j < o.actions.length; j++) {
+          const actLabel = `${label} 第 ${j + 1} 个操作`
+          const a = o.actions[j]
+          if (typeof a !== 'object' || a === null) return `${actLabel}：不是有效对象`
+          const act = a as Record<string, unknown>
+          if (typeof act.title !== 'string' || act.title.trim() === '') {
+            return `${actLabel}：title 不能为空`
+          }
+          if (typeof act.action_mark !== 'string' || act.action_mark.trim() === '') {
+            return `${actLabel}：action_mark 不能为空`
+          }
+          if (seenMarks.has(act.action_mark)) {
+            return `${actLabel}：action_mark「${act.action_mark}」重复`
+          }
+          seenMarks.add(act.action_mark)
+        }
+      }
+
+      if (o.children !== undefined) {
+        if (!Array.isArray(o.children)) return `${label}：children 必须是数组`
+        const err = validateImport(o.children, seenPaths)
+        if (err) return `${o.title} > ${err}`
+      }
+    }
+    return null
+  }
 
   const handleFileSelect = async (file: File | null) => {
     setImportFile(file)
@@ -280,24 +318,43 @@ export default function MenuPage() {
       setImportData(null)
       return
     }
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      setImportPreview('请选择 .json 格式的菜单文件')
+      setImportData(null)
+      return
+    }
     try {
       const text = await file.text()
       const json = JSON.parse(text)
-      if (!Array.isArray(json) || !walkImportValid(json)) {
-        setImportPreview('JSON 格式错误：根节点应为数组，每项需包含 path 和 title 字段')
+      if (!Array.isArray(json)) {
+        setImportPreview('JSON 格式错误：根节点应为数组')
         setImportData(null)
         return
       }
-      const countRoot = json.length
-      const countAll = (items: unknown[]): number => {
-        let n = 0
-        for (const item of items as Array<{ children?: unknown[] }>) {
-          n++
-          if (item.children?.length) n += countAll(item.children)
-        }
-        return n
+      const err = validateImport(json, new Set())
+      if (err) {
+        setImportPreview(`JSON 校验失败：${err}`)
+        setImportData(null)
+        return
       }
-      setImportPreview(`检测到 ${countRoot} 个一级菜单，共 ${countAll(json)} 个节点`)
+      const countAll = (items: unknown[]): { pages: number; actions: number } => {
+        let pages = 0
+        let actions = 0
+        const walk = (nodes: unknown[]) => {
+          for (const node of nodes as Array<{
+            children?: unknown[]
+            actions?: Array<{ action_mark?: string }>
+          }>) {
+            pages++
+            if (node.actions?.length) actions += node.actions.length
+            if (node.children?.length) walk(node.children)
+          }
+        }
+        walk(items)
+        return { pages, actions }
+      }
+      const { pages, actions } = countAll(json)
+      setImportPreview(`检测到 ${pages} 个页面、${actions} 个操作权限`)
       setImportData(json as MenuImportItem[])
     } catch {
       setImportPreview('文件解析失败，请检查 JSON 格式')
@@ -307,32 +364,41 @@ export default function MenuPage() {
 
   const handleImport = async () => {
     if (!importData) return
-    setImporting(true)
-    try {
-      const convert = (items: MenuImportItem[], parentId = 0): MenuSyncItem[] =>
-        items.map((item) => ({
-          name: item.title,
-          type: 10,
-          path: item.path,
-          is_page: 1,
-          module_key: item.module_key || '',
-          sort: item.meta?.sort ?? 100,
-          parent_id: parentId,
-          children: item.children?.length ? convert(item.children, parentId) : undefined,
-        }))
+    modal.confirm({
+      title: '确认全量同步',
+      content:
+        '将以数据源为准进行全量对账：已存在的菜单按 path 匹配更新，新增写入，数据源中未包含的存量菜单将被删除。确定继续？',
+      okText: '开始同步',
+      cancelText: '取消',
+      onOk: async () => {
+        setImporting(true)
+        try {
+          const convert = (items: MenuImportItem[]): MenuSyncItem[] =>
+            items.map((item) => ({
+              name: item.title,
+              path: item.path,
+              module_key: item.module_key,
+              sort: item.meta?.sort,
+              children: item.children?.length ? convert(item.children) : undefined,
+              actions: item.actions?.length
+                ? item.actions.map((a) => ({ name: a.title, action_mark: a.action_mark }))
+                : undefined,
+            }))
 
-      const res = await syncMenu(convert(importData))
-      message.success(res.message || '导入成功')
-      setImportOpen(false)
-      setImportFile(null)
-      setImportPreview(null)
-      setImportData(null)
-      fetchData()
-    } catch (err) {
-      message.error(err instanceof Error ? err.message : '导入失败')
-    } finally {
-      setImporting(false)
-    }
+          const res = await syncMenu(convert(importData))
+          message.success(res.message || '导入成功')
+          setImportOpen(false)
+          setImportFile(null)
+          setImportPreview(null)
+          setImportData(null)
+          fetchData()
+        } catch (err) {
+          message.error(err instanceof Error ? err.message : '导入失败')
+        } finally {
+          setImporting(false)
+        }
+      },
+    })
   }
 
   const treeData = useMemo(() => {
