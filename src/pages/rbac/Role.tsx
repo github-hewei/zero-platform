@@ -12,8 +12,10 @@ import {
   Tree,
   App,
   Spin,
+  Dropdown,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
+import type { MenuProps } from 'antd'
 import {
   PlusOutlined,
   ReloadOutlined,
@@ -22,6 +24,7 @@ import {
   KeyOutlined,
 } from '@ant-design/icons'
 import Permission from '@/components/Permission'
+import { usePermissionStore } from '@/stores'
 import {
   getRoleList,
   createRole,
@@ -216,6 +219,31 @@ export default function RolePage() {
     return build(menuData)
   }, [menuData])
 
+  const allowedActions = usePermissionStore((s) => s.allowedActions)
+
+  const rowActions = (record: RbacRole): MenuProps['items'] => {
+    const items: MenuProps['items'] = []
+    if (allowedActions.includes('Role:menus')) {
+      items.push({
+        key: 'menus',
+        icon: <KeyOutlined />,
+        label: '设置菜单权限',
+        onClick: () => handleManageMenu(record),
+      })
+    }
+    if (allowedActions.includes('Role:delete')) {
+      items.push({ type: 'divider' as const })
+      items.push({
+        key: 'delete',
+        icon: <DeleteOutlined />,
+        label: '删除',
+        danger: true,
+        onClick: () => handleDelete(record),
+      })
+    }
+    return items
+  }
+
   const columns: ColumnsType<RbacRole> = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 100 },
     { title: '角色名称', dataIndex: 'role_name', key: 'role_name', width: 180 },
@@ -229,7 +257,7 @@ export default function RolePage() {
     {
       title: '操作',
       key: 'action',
-      width: 240,
+      width: 120,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
@@ -243,27 +271,11 @@ export default function RolePage() {
               编辑
             </Button>
           </Permission>
-          <Permission moduleKey="Role" actionMark="menus">
-            <Button
-              type="link"
-              size="small"
-              icon={<KeyOutlined />}
-              onClick={() => handleManageMenu(record)}
-            >
-              设置菜单权限
+          <Dropdown menu={{ items: rowActions(record) }} trigger={['hover']}>
+            <Button type="link" size="small">
+              更多
             </Button>
-          </Permission>
-          <Permission moduleKey="Role" actionMark="delete">
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record)}
-            >
-              删除
-            </Button>
-          </Permission>
+          </Dropdown>
         </Space>
       ),
     },

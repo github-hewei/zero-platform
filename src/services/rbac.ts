@@ -9,6 +9,7 @@ import type {
   RbacMenu,
   RbacUser,
   MenuSyncItem,
+  CreateStoreResponse,
 } from '@/types'
 
 export async function getStoreList(
@@ -18,8 +19,8 @@ export async function getStoreList(
   return res.data.data
 }
 
-export async function createStore(data: Partial<RbacStore>) {
-  const res = await http.post<CommonResponse>('/rbac/store/create', data)
+export async function createStore(data: Partial<RbacStore> & { username: string }) {
+  const res = await http.post<CommonResponse<CreateStoreResponse>>('/rbac/store/create', data)
   return res.data
 }
 

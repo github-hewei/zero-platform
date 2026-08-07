@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Table, Button, Input, Space, Card, Form, Modal, Select, Tag, App } from 'antd'
+import { Table, Button, Input, Space, Card, Form, Modal, Select, Tag, App, Dropdown } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
+import type { MenuProps } from 'antd'
 import {
   PlusOutlined,
   SearchOutlined,
@@ -10,6 +11,7 @@ import {
   LockOutlined,
 } from '@ant-design/icons'
 import Permission from '@/components/Permission'
+import { usePermissionStore } from '@/stores'
 import {
   getPlatformUserList,
   createPlatformUser,
@@ -173,6 +175,31 @@ export default function PlatformUserPage() {
     })
   }
 
+  const allowedActions = usePermissionStore((s) => s.allowedActions)
+
+  const rowActions = (record: PlatformUser): MenuProps['items'] => {
+    const items: MenuProps['items'] = []
+    if (allowedActions.includes('PlatformUser:resetpassword')) {
+      items.push({
+        key: 'reset',
+        icon: <LockOutlined />,
+        label: '重置密码',
+        onClick: () => handleResetPassword(record),
+      })
+    }
+    if (allowedActions.includes('PlatformUser:delete')) {
+      items.push({ type: 'divider' as const })
+      items.push({
+        key: 'delete',
+        icon: <DeleteOutlined />,
+        label: '删除',
+        danger: true,
+        onClick: () => handleDelete(record),
+      })
+    }
+    return items
+  }
+
   const columns: ColumnsType<PlatformUser> = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },
     { title: '用户名', dataIndex: 'username', key: 'username', width: 140 },
@@ -200,7 +227,7 @@ export default function PlatformUserPage() {
     {
       title: '操作',
       key: 'action',
-      width: 240,
+      width: 120,
       fixed: 'right',
       render: (_, record) => (
         <Space size="small">
@@ -214,27 +241,11 @@ export default function PlatformUserPage() {
               编辑
             </Button>
           </Permission>
-          <Permission moduleKey="PlatformUser" actionMark="resetpassword">
-            <Button
-              type="link"
-              size="small"
-              icon={<LockOutlined />}
-              onClick={() => handleResetPassword(record)}
-            >
-              重置密码
+          <Dropdown menu={{ items: rowActions(record) }} trigger={['hover']}>
+            <Button type="link" size="small">
+              更多
             </Button>
-          </Permission>
-          <Permission moduleKey="PlatformUser" actionMark="delete">
-            <Button
-              type="link"
-              size="small"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={() => handleDelete(record)}
-            >
-              删除
-            </Button>
-          </Permission>
+          </Dropdown>
         </Space>
       ),
     },

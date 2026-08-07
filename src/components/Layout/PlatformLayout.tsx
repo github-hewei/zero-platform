@@ -107,7 +107,10 @@ export default function PlatformLayout() {
     const values = await pwdForm.validateFields().catch(() => null)
     if (!values) return
     try {
-      await changePassword(values)
+      await changePassword({
+        old_password: values.old_password,
+        new_password: values.new_password,
+      })
       message.success('密码修改成功')
       setPwdOpen(false)
     } catch (err) {
@@ -246,6 +249,24 @@ export default function PlatformLayout() {
             ]}
           >
             <Input.Password placeholder="请输入新密码" />
+          </Form.Item>
+          <Form.Item
+            name="confirm_password"
+            label="确认新密码"
+            dependencies={['new_password']}
+            rules={[
+              { required: true, message: '请再次输入新密码' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('new_password') === value) {
+                    return Promise.resolve()
+                  }
+                  return Promise.reject(new Error('两次输入的密码不一致'))
+                },
+              }),
+            ]}
+          >
+            <Input.Password placeholder="请再次输入新密码" />
           </Form.Item>
         </Form>
       </Modal>

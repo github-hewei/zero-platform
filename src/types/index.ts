@@ -69,6 +69,12 @@ export interface RbacStore {
   updated_at: number
 }
 
+export interface CreateStoreResponse {
+  store_id: number
+  username: string
+  password: string
+}
+
 export interface RbacUser {
   id: number
   username: string

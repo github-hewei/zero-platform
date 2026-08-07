@@ -454,7 +454,12 @@ export default function MenuPage() {
       render: (_, record) => (
         <Space size="small">
           <Permission moduleKey="Menu" actionMark="update">
-            <Button type="link" size="small" onClick={() => handleEditMenu(record)}>
+            <Button
+              type="link"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEditMenu(record)}
+            >
               编辑
             </Button>
           </Permission>

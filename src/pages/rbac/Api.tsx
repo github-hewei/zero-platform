@@ -175,7 +175,7 @@ export default function ApiPage() {
     {
       title: '操作',
       key: 'action',
-      width: 220,
+      width: 140,
       render: (_, record) => (
         <Space size="small">
           <Permission moduleKey="Api" actionMark="update">

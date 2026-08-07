@@ -9,6 +9,7 @@ import {
   DeleteOutlined,
   UndoOutlined,
   RestOutlined,
+  CopyOutlined,
 } from '@ant-design/icons'
 import Permission from '@/components/Permission'
 import {
@@ -19,7 +20,7 @@ import {
   recycleStore,
   restoreStore,
 } from '@/services/rbac'
-import type { RbacStore } from '@/types'
+import type { RbacStore, CreateStoreResponse } from '@/types'
 
 export default function EnterprisePage() {
   const [loading, setLoading] = useState(false)
@@ -29,6 +30,7 @@ export default function EnterprisePage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<RbacStore | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [createdCredential, setCreatedCredential] = useState<CreateStoreResponse | null>(null)
   const [searchForm] = Form.useForm()
   const [form] = Form.useForm()
   const { message, modal } = App.useApp()
@@ -141,12 +143,21 @@ export default function EnterprisePage() {
       if (editing) {
         const r = await updateStore({ id: editing.id, ...values })
         message.success(r.message || '更新成功')
+        setModalOpen(false)
+        fetchData()
       } else {
         const r = await createStore(values)
         message.success(r.message || '创建成功')
+        setModalOpen(false)
+        fetchData()
+        if (r.data?.password) {
+          setCreatedCredential({
+            store_id: r.data.store_id,
+            username: r.data.username,
+            password: r.data.password,
+          })
+        }
       }
-      setModalOpen(false)
-      fetchData()
     } catch (err) {
       message.error(err instanceof Error ? err.message : '操作失败')
     } finally {
@@ -388,6 +399,19 @@ export default function EnterprisePage() {
           >
             <Input placeholder="请输入企业名称" />
           </Form.Item>
+          {!editing && (
+            <Form.Item
+              name="username"
+              label="超管账号"
+              extra="创建后将自动初始化超管角色与超管用户，初始密码由系统生成"
+              rules={[
+                { required: true, message: '请输入超管账号' },
+                { min: 5, max: 20, message: '账号长度 5-20 个字符' },
+              ]}
+            >
+              <Input placeholder="请输入超管登录账号（全局唯一）" />
+            </Form.Item>
+          )}
           <Form.Item
             name="short_name"
             label="企业简称"
@@ -426,6 +450,7 @@ export default function EnterprisePage() {
         width={900}
         destroyOnHidden
       >
+        {' '}
         <Table
           columns={recycleColumns}
           dataSource={recycleData}
@@ -442,6 +467,82 @@ export default function EnterprisePage() {
             onChange: (page, limit) => fetchRecycle(page, limit),
           }}
         />
+      </Modal>
+
+      <Modal
+        title="企业创建成功"
+        open={!!createdCredential}
+        onCancel={() => setCreatedCredential(null)}
+        footer={
+          <Button type="primary" onClick={() => setCreatedCredential(null)} block>
+            我已保存，关闭
+          </Button>
+        }
+        maskClosable={false}
+        width={440}
+        destroyOnHidden
+      >
+        {createdCredential && (
+          <div style={{ paddingTop: 8 }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 12,
+                padding: '14px 16px',
+                border: '1px dashed #F97316',
+                borderRadius: 6,
+                background: 'rgba(249, 115, 22, 0.06)',
+              }}
+            >
+              <div>
+                <div style={{ fontSize: 12, color: '#64748B' }}>
+                  账号：
+                  <span
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontWeight: 600,
+                      color: '#1E293B',
+                    }}
+                  >
+                    {createdCredential.username}
+                  </span>
+                </div>
+                <div style={{ fontSize: 12, color: '#64748B', marginTop: 6 }}>
+                  密码：
+                  <span
+                    style={{
+                      fontFamily: "'JetBrains Mono', monospace",
+                      fontSize: 16,
+                      fontWeight: 600,
+                      color: '#1E293B',
+                    }}
+                  >
+                    {createdCredential.password}
+                  </span>
+                </div>
+              </div>
+              <Button
+                type="default"
+                icon={<CopyOutlined />}
+                onClick={() => {
+                  navigator.clipboard
+                    .writeText(
+                      `账号：${createdCredential.username}\n密码：${createdCredential.password}`,
+                    )
+                    .then(() => message.success('账号和密码已复制'))
+                    .catch(() => message.error('复制失败，请手动复制'))
+                }}
+              >
+                复制
+              </Button>
+            </div>
+            <div style={{ marginTop: 16, fontSize: 12, color: '#94A3B8', lineHeight: 1.6 }}>
+              初始密码仅显示一次，关闭后将无法再次查看。请妥善保管，建议首次登录后立即修改密码。
+            </div>
+          </div>
+        )}
       </Modal>
     </>
   )
