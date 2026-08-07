@@ -293,7 +293,7 @@ export default function ApiPage() {
   }, [data, disabledApiIds])
 
   const columns: ColumnsType<RbacApi> = [
-    { title: 'ID', dataIndex: 'id', key: 'id', width: 100 },
+    { title: 'ID', dataIndex: 'id', key: 'id', width: 130 },
     { title: '接口名称', dataIndex: 'name', key: 'name', width: 200 },
     { title: '接口路径', dataIndex: 'url', key: 'url', width: 280 },
     { title: '排序', dataIndex: 'sort', key: 'sort', width: 70 },

@@ -25,6 +25,7 @@ import {
   KeyOutlined,
 } from '@ant-design/icons'
 import Permission from '@/components/Permission'
+import PasswordModal from '@/components/PasswordModal'
 import { usePermissionStore } from '@/stores'
 import {
   getRbacUserList,
@@ -52,6 +53,7 @@ export default function RbacUserPage() {
   const [roleLoading, setRoleLoading] = useState(false)
   const [selectedRoleIds, setSelectedRoleIds] = useState<number[]>([])
   const [submitting, setSubmitting] = useState(false)
+  const [resetPassword, setResetPassword] = useState<string | null>(null)
   const roleReqSeq = useRef(0)
   const [form] = Form.useForm()
   const [searchForm] = Form.useForm()
@@ -187,6 +189,7 @@ export default function RbacUserPage() {
         try {
           const r = await resetRbacUserPassword(record.id, record.store_id)
           message.success(r.message || '密码已重置')
+          if (r.data?.new_password) setResetPassword(r.data.new_password)
         } catch (err) {
           message.error(err instanceof Error ? err.message : '操作失败')
         }
@@ -479,6 +482,13 @@ export default function RbacUserPage() {
           <div style={{ color: '#94A3B8', padding: 8, textAlign: 'center' }}>该企业暂无角色</div>
         )}
       </Modal>
+
+      <PasswordModal
+        open={!!resetPassword}
+        title="重置密码成功"
+        password={resetPassword || ''}
+        onClose={() => setResetPassword(null)}
+      />
     </>
   )
 }

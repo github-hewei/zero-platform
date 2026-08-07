@@ -11,6 +11,18 @@ import type {
   MenuSyncItem,
   CreateStoreResponse,
   ApiSyncItem,
+  MenuApiBindings,
+  ResetPasswordResponse,
+  CreateStoreRequest,
+  UpdateStoreRequest,
+  CreateMenuRequest,
+  UpdateMenuRequest,
+  CreateApiRequest,
+  UpdateApiRequest,
+  CreateRoleRequest,
+  UpdateRoleRequest,
+  CreateRbacUserRequest,
+  UpdateRbacUserRequest,
 } from '@/types'
 
 export async function getStoreList(
@@ -20,12 +32,12 @@ export async function getStoreList(
   return res.data.data
 }
 
-export async function createStore(data: Partial<RbacStore> & { username: string }) {
+export async function createStore(data: CreateStoreRequest) {
   const res = await http.post<CommonResponse<CreateStoreResponse>>('/rbac/store/create', data)
   return res.data
 }
 
-export async function updateStore(data: Partial<RbacStore> & { id: number }) {
+export async function updateStore(data: UpdateStoreRequest) {
   const res = await http.post<CommonResponse>('/rbac/store/update', data)
   return res.data
 }
@@ -50,12 +62,12 @@ export async function getApiList() {
   return res.data.data || []
 }
 
-export async function createApi(data: Partial<RbacApi>) {
+export async function createApi(data: CreateApiRequest) {
   const res = await http.post<CommonResponse>('/rbac/api/create', data)
   return res.data
 }
 
-export async function updateApi(data: Partial<RbacApi> & { id: number }) {
+export async function updateApi(data: UpdateApiRequest) {
   const res = await http.post<CommonResponse>('/rbac/api/update', data)
   return res.data
 }
@@ -72,12 +84,12 @@ export async function getRoleList(
   return res.data.data
 }
 
-export async function createRole(data: { role_name: string; store_id: number; sort?: number }) {
+export async function createRole(data: CreateRoleRequest) {
   const res = await http.post<CommonResponse>('/rbac/role/create', data)
   return res.data
 }
 
-export async function updateRole(data: Partial<RbacRole> & { id: number; store_id: number }) {
+export async function updateRole(data: UpdateRoleRequest) {
   const res = await http.post<CommonResponse>('/rbac/role/update', data)
   return res.data
 }
@@ -101,12 +113,12 @@ export async function getMenuList() {
   return res.data.data || []
 }
 
-export async function createMenu(data: Partial<RbacMenu>) {
+export async function createMenu(data: CreateMenuRequest) {
   const res = await http.post<CommonResponse>('/rbac/menu/create', data)
   return res.data
 }
 
-export async function updateMenu(data: Partial<RbacMenu> & { id: number }) {
+export async function updateMenu(data: UpdateMenuRequest) {
   const res = await http.post<CommonResponse>('/rbac/menu/update', data)
   return res.data
 }
@@ -127,10 +139,10 @@ export async function syncApi(data: ApiSyncItem[]) {
 }
 
 export async function getMenuApis(menuId: number) {
-  const res = await http.post<CommonResponse<{ list: RbacApi[] }>>('/rbac/menu/api/list', {
+  const res = await http.post<CommonResponse<MenuApiBindings>>('/rbac/menu/api/list', {
     menu_id: menuId,
   })
-  return res.data.data.list || []
+  return res.data.data.api_ids || []
 }
 
 export async function saveMenuApis(menuId: number, apiIds: number[]) {
@@ -148,18 +160,12 @@ export async function getRbacUserList(
   return res.data.data
 }
 
-export async function createRbacUser(data: {
-  username: string
-  password: string
-  real_name: string
-  store_id: number
-  sort?: number
-}) {
+export async function createRbacUser(data: CreateRbacUserRequest) {
   const res = await http.post<CommonResponse>('/rbac/user/create', data)
   return res.data
 }
 
-export async function updateRbacUser(data: Partial<RbacUser> & { id: number; store_id: number }) {
+export async function updateRbacUser(data: UpdateRbacUserRequest) {
   const res = await http.post<CommonResponse>('/rbac/user/update', data)
   return res.data
 }
@@ -170,7 +176,7 @@ export async function deleteRbacUser(id: number, storeId: number) {
 }
 
 export async function resetRbacUserPassword(id: number, storeId: number) {
-  const res = await http.post<CommonResponse>('/rbac/user/reset-password', {
+  const res = await http.post<CommonResponse<ResetPasswordResponse>>('/rbac/user/reset-password', {
     id,
     store_id: storeId,
   })

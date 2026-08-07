@@ -11,6 +11,7 @@ import {
   LockOutlined,
 } from '@ant-design/icons'
 import Permission from '@/components/Permission'
+import PasswordModal from '@/components/PasswordModal'
 import { usePermissionStore } from '@/stores'
 import {
   getPlatformUserList,
@@ -40,6 +41,7 @@ export default function PlatformUserPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<PlatformUser | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [resetPassword, setResetPassword] = useState<string | null>(null)
   const [searchForm] = Form.useForm()
   const [form] = Form.useForm()
   const { message, modal } = App.useApp()
@@ -168,6 +170,7 @@ export default function PlatformUserPage() {
         try {
           const r = await resetPlatformUserPassword(record.id)
           message.success(r.message || '密码已重置')
+          if (r.data?.new_password) setResetPassword(r.data.new_password)
         } catch (err) {
           message.error(err instanceof Error ? err.message : '操作失败')
         }
@@ -372,6 +375,13 @@ export default function PlatformUserPage() {
           )}
         </Form>
       </Modal>
+
+      <PasswordModal
+        open={!!resetPassword}
+        title="重置密码成功"
+        password={resetPassword || ''}
+        onClose={() => setResetPassword(null)}
+      />
     </>
   )
 }

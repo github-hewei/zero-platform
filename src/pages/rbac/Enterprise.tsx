@@ -9,9 +9,9 @@ import {
   DeleteOutlined,
   UndoOutlined,
   RestOutlined,
-  CopyOutlined,
 } from '@ant-design/icons'
 import Permission from '@/components/Permission'
+import PasswordModal from '@/components/PasswordModal'
 import {
   getStoreList,
   createStore,
@@ -469,81 +469,13 @@ export default function EnterprisePage() {
         />
       </Modal>
 
-      <Modal
-        title="企业创建成功"
+      <PasswordModal
         open={!!createdCredential}
-        onCancel={() => setCreatedCredential(null)}
-        footer={
-          <Button type="primary" onClick={() => setCreatedCredential(null)} block>
-            我已保存，关闭
-          </Button>
-        }
-        maskClosable={false}
-        width={440}
-        destroyOnHidden
-      >
-        {createdCredential && (
-          <div style={{ paddingTop: 8 }}>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 12,
-                padding: '14px 16px',
-                border: '1px dashed #F97316',
-                borderRadius: 6,
-                background: 'rgba(249, 115, 22, 0.06)',
-              }}
-            >
-              <div>
-                <div style={{ fontSize: 12, color: '#64748B' }}>
-                  账号：
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontWeight: 600,
-                      color: '#1E293B',
-                    }}
-                  >
-                    {createdCredential.username}
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: '#64748B', marginTop: 6 }}>
-                  密码：
-                  <span
-                    style={{
-                      fontFamily: "'JetBrains Mono', monospace",
-                      fontSize: 16,
-                      fontWeight: 600,
-                      color: '#1E293B',
-                    }}
-                  >
-                    {createdCredential.password}
-                  </span>
-                </div>
-              </div>
-              <Button
-                type="default"
-                icon={<CopyOutlined />}
-                onClick={() => {
-                  navigator.clipboard
-                    .writeText(
-                      `账号：${createdCredential.username}\n密码：${createdCredential.password}`,
-                    )
-                    .then(() => message.success('账号和密码已复制'))
-                    .catch(() => message.error('复制失败，请手动复制'))
-                }}
-              >
-                复制
-              </Button>
-            </div>
-            <div style={{ marginTop: 16, fontSize: 12, color: '#94A3B8', lineHeight: 1.6 }}>
-              初始密码仅显示一次，关闭后将无法再次查看。请妥善保管，建议首次登录后立即修改密码。
-            </div>
-          </div>
-        )}
-      </Modal>
+        title="企业创建成功"
+        username={createdCredential?.username}
+        password={createdCredential?.password || ''}
+        onClose={() => setCreatedCredential(null)}
+      />
     </>
   )
 }

@@ -25,12 +25,10 @@
                 message:
                   type: string
                 data:
-                  type: object
-                  properties:
-                    list:
-                      type: array
-                      items:
-                        $ref: '../schemas.yaml#/schemas/RbacApi'
+                  type: array
+                  description: 接口树(不分页)
+                  items:
+                    $ref: '../schemas.yaml#/schemas/RbacApi'
 
 /rbac/api/create:
   post:

@@ -240,6 +240,124 @@ export interface ApiSyncItem {
   category: string
 }
 
+export interface MenuApiBindings {
+  menu_id: number
+  api_ids: number[]
+}
+
+export interface ResetPasswordResponse {
+  new_password: string
+}
+
+export interface CreateStoreRequest {
+  name: string
+  short_name: string
+  contact: string
+  contact_phone: string
+  username: string
+  description?: string
+  logo_image_id?: number
+  sort?: number
+}
+
+export interface UpdateStoreRequest {
+  id: number
+  name: string
+  short_name: string
+  contact: string
+  contact_phone: string
+  description?: string
+  logo_image_id?: number
+  sort?: number
+}
+
+export interface CreateMenuRequest {
+  name: string
+  type: number
+  path: string
+  parent_id?: number
+  module_key?: string
+  action_mark?: string
+  is_page?: number
+  sort?: number
+}
+
+export interface UpdateMenuRequest extends CreateMenuRequest {
+  id: number
+}
+
+export interface CreateApiRequest {
+  name: string
+  url: string
+  parent_id?: number
+  sort?: number
+}
+
+export interface UpdateApiRequest extends CreateApiRequest {
+  id: number
+}
+
+export interface CreateRoleRequest {
+  role_name: string
+  store_id: number
+  parent_id?: number
+  sort?: number
+}
+
+export interface UpdateRoleRequest {
+  id: number
+  role_name: string
+  store_id?: number
+  parent_id?: number
+  sort?: number
+}
+
+export interface CreateRbacUserRequest {
+  username: string
+  password: string
+  real_name: string
+  store_id: number
+  is_super?: number
+  sort?: number
+}
+
+export interface UpdateRbacUserRequest {
+  id: number
+  username: string
+  real_name: string
+  store_id: number
+  is_super?: number
+  sort?: number
+}
+
+export interface CreatePlatformUserRequest {
+  username: string
+  password: string
+  real_name: string
+  role?: number
+  status?: number
+}
+
+export interface UpdatePlatformUserRequest {
+  id: number
+  username: string
+  real_name: string
+  role?: number
+  status?: number
+  password?: string
+}
+
+export interface CreateSettingDefaultRequest {
+  setting_key: string
+  setting_values: string
+}
+
+export interface UpdateSettingDefaultRequest {
+  id: number
+  setting_key: string
+  setting_values: string
+}
+
 export interface DailyCount {
   date: string
   count: number

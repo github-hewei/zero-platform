@@ -172,7 +172,7 @@ export default function MenuPage() {
       const [all, bound] = await Promise.all([getApiList(), getMenuApis(record.id)])
       if (seq !== apiReqSeq.current) return
       setAllApis(all)
-      setSelectedApiIds(bound.map((a) => a.id))
+      setSelectedApiIds(bound)
     } catch (err) {
       if (seq !== apiReqSeq.current) return
       message.error(err instanceof Error ? err.message : '加载接口权限失败')

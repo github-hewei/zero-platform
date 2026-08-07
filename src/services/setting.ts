@@ -1,5 +1,12 @@
 import http from './http'
-import type { CommonResponse, PaginatedData, SettingDefault, FormGroup } from '@/types'
+import type {
+  CommonResponse,
+  PaginatedData,
+  SettingDefault,
+  FormGroup,
+  CreateSettingDefaultRequest,
+  UpdateSettingDefaultRequest,
+} from '@/types'
 
 export async function getSettingDefaultList(params: {
   page: number
@@ -13,12 +20,12 @@ export async function getSettingDefaultList(params: {
   return res.data.data
 }
 
-export async function createSettingDefault(data: Partial<SettingDefault>) {
+export async function createSettingDefault(data: CreateSettingDefaultRequest) {
   const res = await http.post<CommonResponse>('/setting/default/create', data)
   return res.data
 }
 
-export async function updateSettingDefault(data: Partial<SettingDefault> & { id: number }) {
+export async function updateSettingDefault(data: UpdateSettingDefaultRequest) {
   const res = await http.post<CommonResponse>('/setting/default/update', data)
   return res.data
 }

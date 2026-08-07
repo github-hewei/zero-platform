@@ -28,14 +28,10 @@
                 message:
                   type: string
                 data:
-                  type: object
-                  properties:
-                    list:
-                      type: array
-                      items:
-                        $ref: '../schemas.yaml#/schemas/RbacMenu'
-                    total:
-                      type: integer
+                  type: array
+                  description: 菜单树(不分页)
+                  items:
+                    $ref: '../schemas.yaml#/schemas/RbacMenu'
 
 /rbac/menu/create:
   post:

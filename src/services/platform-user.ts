@@ -1,5 +1,13 @@
 import http from './http'
-import type { CommonResponse, PaginatedData, PaginatedRequest, PlatformUser } from '@/types'
+import type {
+  CommonResponse,
+  PaginatedData,
+  PaginatedRequest,
+  PlatformUser,
+  CreatePlatformUserRequest,
+  UpdatePlatformUserRequest,
+  ResetPasswordResponse,
+} from '@/types'
 
 export async function getPlatformUserList(
   params: PaginatedRequest & { username?: string; real_name?: string },
@@ -11,12 +19,12 @@ export async function getPlatformUserList(
   return res.data.data
 }
 
-export async function createPlatformUser(data: Partial<PlatformUser> & { password: string }) {
+export async function createPlatformUser(data: CreatePlatformUserRequest) {
   const res = await http.post<CommonResponse>('/platform/user/create', data)
   return res.data
 }
 
-export async function updatePlatformUser(data: Partial<PlatformUser> & { id: number }) {
+export async function updatePlatformUser(data: UpdatePlatformUserRequest) {
   const res = await http.post<CommonResponse>('/platform/user/update', data)
   return res.data
 }
@@ -27,6 +35,9 @@ export async function deletePlatformUser(id: number) {
 }
 
 export async function resetPlatformUserPassword(id: number) {
-  const res = await http.post<CommonResponse>('/platform/user/reset-password', { id })
+  const res = await http.post<CommonResponse<ResetPasswordResponse>>(
+    '/platform/user/reset-password',
+    { id },
+  )
   return res.data
 }
