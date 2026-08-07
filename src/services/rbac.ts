@@ -10,6 +10,7 @@ import type {
   RbacUser,
   MenuSyncItem,
   CreateStoreResponse,
+  ApiSyncItem,
 } from '@/types'
 
 export async function getStoreList(
@@ -117,6 +118,11 @@ export async function deleteMenu(id: number) {
 
 export async function syncMenu(data: MenuSyncItem[]) {
   const res = await http.post<CommonResponse>('/rbac/menu/sync', data)
+  return res.data
+}
+
+export async function syncApi(data: ApiSyncItem[]) {
+  const res = await http.post<CommonResponse>('/rbac/api/sync', data)
   return res.data
 }
 

@@ -1,10 +1,71 @@
-import { useState, useEffect, useCallback, useMemo } from 'react'
-import { Table, Button, Space, Card, Form, Modal, InputNumber, Input, TreeSelect, App } from 'antd'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import {
+  Table,
+  Button,
+  Space,
+  Card,
+  Form,
+  Modal,
+  InputNumber,
+  Input,
+  TreeSelect,
+  App,
+  theme,
+} from 'antd'
 import type { ColumnsType } from 'antd/es/table'
-import { PlusOutlined, ReloadOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons'
+import {
+  PlusOutlined,
+  ReloadOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UploadOutlined,
+} from '@ant-design/icons'
 import Permission from '@/components/Permission'
-import { getApiList, createApi, updateApi, deleteApi } from '@/services/rbac'
-import type { RbacApi } from '@/types'
+import { getApiList, createApi, updateApi, deleteApi, syncApi } from '@/services/rbac'
+import type { RbacApi, ApiSyncItem } from '@/types'
+
+const HTTP_METHODS = ['post', 'get', 'put', 'delete', 'patch'] as const
+
+function parseOpenApiApis(doc: unknown): { items: ApiSyncItem[]; error?: string } {
+  if (typeof doc !== 'object' || doc === null) {
+    return { items: [], error: 'JSON 结构错误：根节点应为对象' }
+  }
+  const paths = (doc as { paths?: unknown }).paths
+  if (typeof paths !== 'object' || paths === null || Array.isArray(paths)) {
+    return { items: [], error: 'JSON 结构错误：缺少 paths 对象' }
+  }
+
+  const items: ApiSyncItem[] = []
+  const seen = new Set<string>()
+  const entries = Object.entries(paths as Record<string, unknown>)
+
+  for (let i = 0; i < entries.length; i++) {
+    const [path, pathItem] = entries[i]
+    const label = `第 ${i + 1} 个接口 ${path}`
+    if (typeof pathItem !== 'object' || pathItem === null) {
+      return { items: [], error: `${label}：不是有效对象` }
+    }
+    const methods = pathItem as Record<string, unknown>
+    const methodKey = HTTP_METHODS.find((m) => {
+      const op = methods[m]
+      return typeof op === 'object' && op !== null
+    })
+    if (!methodKey) return { items: [], error: `${label}：缺少 HTTP 方法定义` }
+    const op = methods[methodKey] as Record<string, unknown>
+
+    const tags = op.tags
+    const category =
+      Array.isArray(tags) && typeof tags[0] === 'string' && tags[0].trim() ? tags[0].trim() : ''
+    if (!category) return { items: [], error: `${label}：缺少分组（tags）` }
+
+    const name = typeof op.summary === 'string' && op.summary.trim() ? op.summary.trim() : path
+    if (seen.has(path)) return { items: [], error: `${label}：url「${path}」重复` }
+    seen.add(path)
+
+    items.push({ name, url: path, category })
+  }
+  return { items }
+}
 
 export default function ApiPage() {
   const [loading, setLoading] = useState(false)
@@ -12,8 +73,72 @@ export default function ApiPage() {
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<RbacApi | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importing, setImporting] = useState(false)
+  const [importFile, setImportFile] = useState<File | null>(null)
+  const [importPreview, setImportPreview] = useState<string | null>(null)
+  const [importData, setImportData] = useState<ApiSyncItem[] | null>(null)
+  const importInputRef = useRef<HTMLInputElement>(null)
   const [form] = Form.useForm()
   const { message, modal } = App.useApp()
+  const { token } = theme.useToken()
+
+  const handleFileSelect = async (file: File | null) => {
+    setImportFile(file)
+    if (!file) {
+      setImportPreview(null)
+      setImportData(null)
+      return
+    }
+    if (!file.name.toLowerCase().endsWith('.json')) {
+      setImportPreview('请选择 .json 格式的 OpenAPI 文档')
+      setImportData(null)
+      return
+    }
+    try {
+      const text = await file.text()
+      const doc = JSON.parse(text)
+      const { items, error } = parseOpenApiApis(doc)
+      if (error || items.length === 0) {
+        setImportPreview(error || '未从文档中解析到任何接口')
+        setImportData(null)
+        return
+      }
+      const groupCount = new Set(items.map((it) => it.category)).size
+      setImportPreview(`检测到 ${items.length} 个接口、${groupCount} 个分组`)
+      setImportData(items)
+    } catch {
+      setImportPreview('文件解析失败，请检查 JSON 格式')
+      setImportData(null)
+    }
+  }
+
+  const handleImport = async () => {
+    if (!importData || importing) return
+    modal.confirm({
+      title: '确认全量同步接口',
+      content:
+        '将以数据源为准进行全量对账：已存在的接口按 url 匹配更新，新增写入，数据源中未包含的存量接口及其父级分组将被删除。确定继续？',
+      okText: '开始同步',
+      cancelText: '取消',
+      onOk: async () => {
+        setImporting(true)
+        try {
+          const r = await syncApi(importData)
+          message.success(r.message || '同步成功')
+          setImportOpen(false)
+          setImportFile(null)
+          setImportPreview(null)
+          setImportData(null)
+          fetchData()
+        } catch (err) {
+          message.error(err instanceof Error ? err.message : '同步失败')
+        } finally {
+          setImporting(false)
+        }
+      },
+    })
+  }
 
   const fetchData = useCallback(async () => {
     setLoading(true)
@@ -215,6 +340,11 @@ export default function ApiPage() {
                 新增接口
               </Button>
             </Permission>
+            <Permission moduleKey="Api" actionMark="create">
+              <Button icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
+                导入
+              </Button>
+            </Permission>
             <Button icon={<ReloadOutlined />} onClick={fetchData}>
               刷新
             </Button>
@@ -273,6 +403,70 @@ export default function ApiPage() {
             <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="导入 OpenAPI 接口"
+        open={importOpen}
+        onOk={handleImport}
+        onCancel={() => {
+          setImportOpen(false)
+          setImportFile(null)
+          setImportPreview(null)
+          setImportData(null)
+        }}
+        okText="导入"
+        confirmLoading={importing}
+        destroyOnHidden
+      >
+        <div
+          style={{
+            border: `1px dashed ${token.colorBorder}`,
+            borderRadius: 6,
+            padding: '32px 16px',
+            textAlign: 'center',
+            marginTop: 16,
+            cursor: 'pointer',
+          }}
+          onClick={() => importInputRef.current?.click()}
+          onDrop={(e) => {
+            e.preventDefault()
+            handleFileSelect(e.dataTransfer.files?.[0] || null)
+          }}
+          onDragOver={(e) => e.preventDefault()}
+        >
+          {importFile ? (
+            <div style={{ color: token.colorText, fontWeight: 500 }}>{importFile.name}</div>
+          ) : (
+            <div style={{ color: token.colorTextSecondary }}>
+              点击或拖拽上传 OpenAPI index.json 文件
+            </div>
+          )}
+        </div>
+        {importPreview && (
+          <div
+            style={{
+              marginTop: 12,
+              padding: '8px 12px',
+              background: importData ? token.colorSuccessBg : token.colorErrorBg,
+              borderRadius: 4,
+              fontSize: 13,
+              color: importData ? token.colorSuccess : token.colorError,
+            }}
+          >
+            {importPreview}
+          </div>
+        )}
+        <input
+          ref={importInputRef}
+          type="file"
+          accept=".json"
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            handleFileSelect(e.target.files?.[0] || null)
+            e.target.value = ''
+          }}
+        />
       </Modal>
     </>
   )

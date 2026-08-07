@@ -234,6 +234,12 @@ export interface MenuSyncItem {
   actions?: MenuSyncAction[]
 }
 
+export interface ApiSyncItem {
+  name: string
+  url: string
+  category: string
+}
+
 export interface DailyCount {
   date: string
   count: number

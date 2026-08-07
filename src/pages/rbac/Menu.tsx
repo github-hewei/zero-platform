@@ -14,6 +14,7 @@ import {
   Tree,
   App,
   Spin,
+  theme,
 } from 'antd'
 import type { ColumnsType } from 'antd/es/table'
 import type { MenuProps } from 'antd'
@@ -50,6 +51,8 @@ export default function MenuPage() {
   const [menuForm] = Form.useForm()
   const [actionForm] = Form.useForm()
   const { message, modal } = App.useApp()
+  const { token } = theme.useToken()
+  const importInputRef = useRef<HTMLInputElement>(null)
 
   const [apiOpen, setApiOpen] = useState(false)
   const [apiTarget, setApiTarget] = useState<RbacMenu | null>(null)
@@ -363,7 +366,7 @@ export default function MenuPage() {
   }
 
   const handleImport = async () => {
-    if (!importData) return
+    if (!importData || importing) return
     modal.confirm({
       title: '确认全量同步',
       content:
@@ -691,14 +694,14 @@ export default function MenuPage() {
       >
         <div
           style={{
-            border: '1px dashed #CBD5E1',
+            border: `1px dashed ${token.colorBorder}`,
             borderRadius: 6,
             padding: '32px 16px',
             textAlign: 'center',
             marginTop: 16,
             cursor: 'pointer',
           }}
-          onClick={() => document.getElementById('import-file-input')?.click()}
+          onClick={() => importInputRef.current?.click()}
           onDrop={(e) => {
             e.preventDefault()
             handleFileSelect(e.dataTransfer.files?.[0] || null)
@@ -706,9 +709,9 @@ export default function MenuPage() {
           onDragOver={(e) => e.preventDefault()}
         >
           {importFile ? (
-            <div style={{ color: '#0F172A', fontWeight: 500 }}>{importFile.name}</div>
+            <div style={{ color: token.colorText, fontWeight: 500 }}>{importFile.name}</div>
           ) : (
-            <div style={{ color: '#94A3B8' }}>点击或拖拽上传 menus.json 文件</div>
+            <div style={{ color: token.colorTextSecondary }}>点击或拖拽上传 menus.json 文件</div>
           )}
         </div>
         {importPreview && (
@@ -716,21 +719,24 @@ export default function MenuPage() {
             style={{
               marginTop: 12,
               padding: '8px 12px',
-              background: importData ? '#F0FDF4' : '#FEF2F2',
+              background: importData ? token.colorSuccessBg : token.colorErrorBg,
               borderRadius: 4,
               fontSize: 13,
-              color: importData ? '#16A34A' : '#DC2626',
+              color: importData ? token.colorSuccess : token.colorError,
             }}
           >
             {importPreview}
           </div>
         )}
         <input
-          id="import-file-input"
+          ref={importInputRef}
           type="file"
           accept=".json"
           style={{ display: 'none' }}
-          onChange={(e) => handleFileSelect(e.target.files?.[0] || null)}
+          onChange={(e) => {
+            handleFileSelect(e.target.files?.[0] || null)
+            e.target.value = ''
+          }}
         />
       </Modal>
     </>
