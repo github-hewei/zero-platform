@@ -34,7 +34,7 @@ import {
   getStoreList,
   getMenuList,
 } from '@/services/rbac'
-import type { RbacRole, RbacStore, RbacMenu, MenuTreeNode } from '@/types'
+import type { RbacRole, RbacStore, RbacMenu } from '@/types'
 
 export default function RolePage() {
   const [loading, setLoading] = useState(false)
@@ -199,7 +199,11 @@ export default function RolePage() {
     if (!menuTarget || submitting) return
     setSubmitting(true)
     try {
-      const r = await setRoleMenus(menuTarget.id, selectedMenuIds, menuTarget.store_id)
+      const r = await setRoleMenus(
+        menuTarget.id,
+        expandWithAncestors(selectedMenuIds),
+        menuTarget.store_id,
+      )
       message.success(r.message || '保存成功')
       setMenuOpen(false)
     } catch (err) {
@@ -210,14 +214,53 @@ export default function RolePage() {
   }
 
   const menuTreeData = useMemo(() => {
-    const build = (items: RbacMenu[]): MenuTreeNode[] =>
-      items.map((item) => ({
-        title: item.name,
-        key: item.id,
-        children: item.children?.length ? build(item.children) : undefined,
-      }))
+    interface TreeNode {
+      title: string
+      key: number
+      isAction?: boolean
+      children?: TreeNode[]
+    }
+    const build = (items: RbacMenu[]): TreeNode[] =>
+      items.map((item) => {
+        const pages = item.children?.length ? build(item.children) : []
+        const actions = (item.actions || []).map((a) => ({
+          title: a.name,
+          key: a.id,
+          isAction: true,
+        }))
+        const children = [...pages, ...actions]
+        return {
+          title: item.name,
+          key: item.id,
+          children: children.length ? children : undefined,
+        }
+      })
     return build(menuData)
   }, [menuData])
+
+  const menuMeta = useMemo(() => {
+    const parentMap = new Map<number, number>()
+    const walk = (items: RbacMenu[], parentId?: number) => {
+      for (const item of items) {
+        if (parentId !== undefined) parentMap.set(item.id, parentId)
+        if (item.children?.length) walk(item.children, item.id)
+        if (item.actions?.length) walk(item.actions, item.id)
+      }
+    }
+    walk(menuData)
+    return parentMap
+  }, [menuData])
+
+  const expandWithAncestors = (ids: number[]): number[] => {
+    const result = new Set<number>()
+    const collect = (id: number) => {
+      result.add(id)
+      const parent = menuMeta.get(id)
+      if (parent !== undefined) collect(parent)
+    }
+    ids.forEach(collect)
+    return [...result]
+  }
 
   const allowedActions = usePermissionStore((s) => s.allowedActions)
 
@@ -407,11 +450,10 @@ export default function RolePage() {
         ) : (
           <Tree
             checkable
+            checkStrictly
             defaultExpandAll
             checkedKeys={selectedMenuIds}
-            onCheck={(keys, e) =>
-              setSelectedMenuIds((keys as number[]).filter((k) => !e.halfCheckedKeys?.includes(k)))
-            }
+            onCheck={(keys) => setSelectedMenuIds(keys as number[])}
             treeData={menuTreeData}
           />
         )}
